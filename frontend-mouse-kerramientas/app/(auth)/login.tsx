@@ -1,10 +1,11 @@
+import { FontAwesome5 } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React from 'react';
 import { Image, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/Colors';
 
 export default function LoginScreen() {
-  const theme = Colors.light; // Usamos el tema claro como solicitaste
+  const theme = Colors.light;
 
   return (
     <View style={styles.mainContainer}>
@@ -13,6 +14,7 @@ export default function LoginScreen() {
       <View style={styles.header}>
         <SafeAreaView style={styles.logoContainer}>
           <View style={styles.logoBg}>
+            {/* Ajustamos el tamaño para que se muestre correctamente */}
             <Image 
               source={require('../../assets/images/mouske_icon.png')}
               style={styles.logo}
@@ -40,7 +42,7 @@ export default function LoginScreen() {
               autoCapitalize="none"
               placeholderTextColor={theme.placeholderText}
             />
-            <Text style={styles.inputIcon}>✉️</Text>
+            <FontAwesome5 name="envelope" size={18} color={Colors.light.textSecondary} style={styles.inputIcon} />
           </View>
         </View>
         
@@ -53,7 +55,7 @@ export default function LoginScreen() {
               secureTextEntry={true}
               placeholderTextColor={theme.placeholderText}
             />
-            <Text style={styles.inputIcon}>🔒</Text>
+            <FontAwesome5 name="lock" size={18} color={Colors.light.textSecondary} style={styles.inputIcon} />
           </View>
         </View>
         
@@ -90,7 +92,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
     width: '100%',
-    height: '40%',
+    height: '40%', // Aseguramos que el encabezado ocupe el 40% superior
+    paddingTop: 20, // Añadimos padding para dispositivos con notch
   },
   curve: {
     position: 'absolute',
@@ -101,14 +104,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.background,
     borderTopLeftRadius: 100,
     borderTopRightRadius: 100,
+    zIndex: 5, // Aseguramos que la curva esté por encima
   },
   logoContainer: {
     alignItems: 'center',
     width: '100%',
+    marginTop: -20, // Ajustamos la posición para centrar mejor
   },
   logoBg: {
-    width: 140,
-    height: 140,
+    width: 120,
+    height: 120,
     backgroundColor: 'white',
     borderRadius: 20,
     justifyContent: 'center',
@@ -121,8 +126,8 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   logo: {
-    width: 100,
-    height: 100,
+    width: 80,
+    height: 80,
   },
   logoText: {
     fontSize: 28,
@@ -178,7 +183,6 @@ const styles = StyleSheet.create({
   inputIcon: {
     position: 'absolute',
     right: 15,
-    fontSize: 18,
   },
   forgotPassword: {
     textAlign: 'right',

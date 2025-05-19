@@ -1,3 +1,4 @@
+import { FontAwesome5 } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -6,15 +7,15 @@ import { Colors } from '../constants/Colors';
 type TabItem = {
   name: string;
   route: string;
-  icon: string;
+  icon: string; // Nombre del icono de FontAwesome5
 };
 
 const tabs: TabItem[] = [
-  { name: 'Home', route: '/', icon: '🏠' },
-  { name: 'Browse', route: '/categories', icon: '🔍' },
-  { name: 'Favoritos', route: '/favorites', icon: '❤️' },
-  { name: 'Carrito', route: '/cart', icon: '🛒' },
-  { name: 'Perfil', route: '/profile', icon: '👤' },
+  { name: 'Home', route: '/', icon: 'home' },
+  { name: 'Browse', route: '/categories', icon: 'search' },
+  { name: 'Favoritos', route: '/favorites', icon: 'heart' },
+  { name: 'Carrito', route: '/cart', icon: 'shopping-cart' },
+  { name: 'Perfil', route: '/profile', icon: 'user' },
 ];
 
 export default function BottomTabBar() {
@@ -26,7 +27,7 @@ export default function BottomTabBar() {
           style={styles.tab}
           onPress={() => router.push(tab.route as '/' | '/categories' | '/favorites' | '/cart' | '/profile')}
         >
-          <Text style={styles.icon}>{tab.icon}</Text>
+          <FontAwesome5 name={tab.icon} size={22} color={Colors.light.textSecondary} style={styles.icon} />
           <Text style={styles.label}>{tab.name}</Text>
         </Pressable>
       ))}
@@ -49,8 +50,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   icon: {
-    fontSize: 20,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   label: {
     fontSize: 12,
