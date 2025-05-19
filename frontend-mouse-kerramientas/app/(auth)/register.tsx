@@ -293,6 +293,7 @@ const styles = StyleSheet.create({
     paddingTop: height * 0.02,
     paddingBottom: height * 0.05,
   },
+  
   title: {
     fontSize: baseUnit * 1.8,
     fontWeight: 'bold',
