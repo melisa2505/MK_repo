@@ -2,6 +2,7 @@ import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -15,15 +16,30 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider value={DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="dark" />
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <View style={styles.container}>
+      <SafeAreaProvider>
+        <ThemeProvider value={DefaultTheme}>
+          <Stack screenOptions={{
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: 'transparent',
+            }
+          }}>
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          <StatusBar style="dark" />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    margin: 0,
+    padding: 0,
+  },
+});
