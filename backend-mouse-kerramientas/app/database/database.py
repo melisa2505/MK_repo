@@ -1,40 +1,29 @@
 """
-Configuración de la base de datos para la aplicación.
+Configuración de la base de datos SQLite
 """
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import os
-from dotenv import load_dotenv
 
-# Cargar variables de entorno
-load_dotenv()
+from ..core.config import settings
 
-# URL de conexión a la base de datos
-# Para desarrollo, pueden usar SQLite
-# SQLALCHEMY_DATABASE_URL = "sqlite:///./app.db"
-# Para producción, pueden usar PostgreSQL
-SQLALCHEMY_DATABASE_URL = os.getenv(
-    "DATABASE_URL", 
-    "postgresql://usuario:contraseña@localhost:5432/mousekerramientas"
-)
-
-# Crear motor de base de datos
+# Crear el motor de base de datos
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    # Necesario sólo para SQLite. Para otras bases de datos, puede eliminar esta línea
-    # connect_args={"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
+    settings.DATABASE_URL, 
+    connect_args={"check_same_thread": False}  # Necesario para SQLite
 )
 
-# Crear sesión
+# Crear la fábrica de sesiones
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base para modelos declarativos
+# Base declarativa para los modelos
 Base = declarative_base()
 
-# Función para obtener una sesión de base de datos
+
 def get_db():
-    """Proporciona una sesión de base de datos para las operaciones de la API."""
+    """
+    Dependency para obtener la sesión de base de datos
+    """
     db = SessionLocal()
     try:
         yield db

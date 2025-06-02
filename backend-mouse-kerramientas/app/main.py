@@ -3,7 +3,12 @@ Archivo principal de la aplicación FastAPI para Mouse Kerramientas
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routes import products, users, auth, tools
+
+from .database.database import Base, engine
+from .routes import auth, products, tools, users
+
+# Crear las tablas de la base de datos
+Base.metadata.create_all(bind=engine)
 
 # Crear la instancia de la aplicación
 app = FastAPI(
@@ -22,10 +27,10 @@ app.add_middleware(
 )
 
 # Incluir los routers de la aplicación
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(products.router, prefix="/api/products", tags=["products"])
 app.include_router(tools.router, prefix="/api/tools", tags=["tools"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
 @app.get("/", tags=["health"])
 async def root():

@@ -1,17 +1,21 @@
 """
-Esquemas Pydantic para tokens de autenticación.
+Esquemas Pydantic para autenticación y tokens
 """
 from typing import Optional
+
 from pydantic import BaseModel
 
 
 class Token(BaseModel):
-    """Esquema para la respuesta de token de acceso."""
+    """
+    Schema para respuesta de token
+    """
     access_token: str
-    token_type: str
+    token_type: str = "bearer"
 
 
-class TokenPayload(BaseModel):
-    """Esquema para el payload del token JWT."""
-    sub: Optional[str] = None
-    # Puedes agregar más campos según sea necesario
+class TokenData(BaseModel):
+    """
+    Schema para datos del token
+    """
+    username: Optional[str] = None

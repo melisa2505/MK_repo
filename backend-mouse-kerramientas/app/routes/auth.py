@@ -1,101 +1,120 @@
 """
-Rutas para autenticación de usuarios.
+Rutas de autenticación (login y registro)
 """
 from datetime import timedelta
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from ..database.database import get_db
-from ..core.security import authenticate_user, create_access_token
 from ..core.config import settings
+from ..core.security import create_access_token, oauth2_scheme
+from ..crud import user as crud_user
+from ..database.database import get_db
+from ..dependencies import get_current_active_user, get_current_user
+from ..models.user import User
 from ..schemas.token import Token
-from ..schemas.user import User, UserCreate
-from ..models.user import User as UserModel
+from ..schemas.user import User as UserSchema, UserCreate, UserLogin
 
 router = APIRouter()
 
 
-@router.post("/token", response_model=Token)
-async def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+@router.post("/register", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
+async def register(user: UserCreate, db: Session = Depends(get_db)):
+    """
+    Registrar un nuevo usuario
+    """
+    # Verificar si el email ya existe
+    db_user = crud_user.get_user_by_email(db, email=user.email)
+    if db_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    # Verificar si el username ya existe
+    db_user = crud_user.get_user_by_username(db, username=user.username)
+    if db_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already taken"
+        )
+    
+    # Crear el usuario
+    db_user = crud_user.create_user(db=db, user=user)
+    return db_user
+
+
+@router.post("/login", response_model=Token)
+async def login(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Session = Depends(get_db)
 ):
     """
-    Obtiene un token de acceso JWT para autenticar futuras solicitudes.
-    
-    - **username**: Nombre de usuario o email
-    - **password**: Contraseña
+    Login de usuario con OAuth2 compatible
     """
-    user = authenticate_user(db, form_data.username, form_data.password)
+    user = crud_user.authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales incorrectas",
+            detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user"
         )
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
+        subject=user.username, expires_delta=access_token_expires
     )
     
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
-async def register_user(
-    user: UserCreate,
-    db: Session = Depends(get_db)
-):
+@router.post("/login-json", response_model=Token)
+async def login_json(user_login: UserLogin, db: Session = Depends(get_db)):
     """
-    Registra un nuevo usuario en el sistema.
-    
-    - **email**: Email del usuario
-    - **username**: Nombre de usuario
-    - **password**: Contraseña
-    - **password_confirm**: Confirmación de contraseña
+    Login de usuario con JSON (alternativa más simple)
     """
-    # Verificar si el email ya está registrado
-    db_user = db.query(UserModel).filter(UserModel.email == user.email).first()
-    if db_user:
+    user = crud_user.authenticate_user(db, user_login.username, user_login.password)
+    if not user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El email ya está registrado"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password"
         )
     
-    # Verificar si el nombre de usuario ya está registrado
-    db_user = db.query(UserModel).filter(UserModel.username == user.username).first()
-    if db_user:
+    if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El nombre de usuario ya está registrado"
+            detail="Inactive user"
         )
     
-    # Crear el nuevo usuario
-    from ..core.security import get_password_hash
-    
-    db_user = UserModel(
-        email=user.email,
-        username=user.username,
-        full_name=user.full_name,
-        phone_number=user.phone_number,
-        hashed_password=get_password_hash(user.password)
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        subject=user.username, expires_delta=access_token_expires
     )
     
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.post("/logout")
-async def logout():
+@router.get("/me", response_model=UserSchema)
+async def read_users_me(
+    current_user: Annotated[User, Depends(get_current_active_user)]
+):
     """
-    Cierra la sesión del usuario actual.
-    
-    En un sistema basado en JWT, esta función podría:
-    1. Añadir el token a una lista negra
-    2. Limpiar cookies si se están utilizando
+    Obtener información del usuario actual
     """
-    return {"message": "Sesión cerrada correctamente"}
+    return current_user
+
+
+@router.get("/test-token")
+async def test_token(current_user: Annotated[User, Depends(get_current_active_user)]):
+    """
+    Endpoint para probar que el token funciona correctamente
+    """
+    return {"message": f"Hello {current_user.username}!", "user_id": current_user.id}

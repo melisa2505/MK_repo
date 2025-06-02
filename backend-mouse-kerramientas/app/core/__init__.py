@@ -1,1 +1,1 @@
-# Archivo para hacer que la carpeta sea un paquete Python
+# Init file for core module
