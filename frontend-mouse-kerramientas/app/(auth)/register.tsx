@@ -1,8 +1,10 @@
 import { FontAwesome5 } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useMemo } from 'react';
-import { Dimensions, Image, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Dimensions, Image, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert } from '../../components/ui/Alert';
 import { Colors } from '../../constants/Colors';
+import { useAuth } from '../../context/AuthContext';
 
 // Obtenemos el ancho de la pantalla para asegurarnos que el diseño ocupe todo el espacio
 const { width, height } = Dimensions.get('window');
@@ -87,9 +89,99 @@ const ToolsBackground = ({ opacity = 0.5, density = 8 }) => {
     );
   };
 
-
 export default function RegisterScreen() {
   const theme = Colors.light;
+  const { register, isLoading, error, clearError, isAuthenticated } = useAuth();
+  
+  // Estados del formulario
+  const [formData, setFormData] = useState({
+    full_name: '',
+    email: '',
+    username: '',
+    password: '',
+    password_confirm: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Limpiar errores cuando cambie el formulario
+  useEffect(() => {
+    if (error || localError) {
+      clearError();
+      setLocalError(null);
+    }
+  }, [formData]);
+
+  // Redireccionar si ya está autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/(tabs)');
+    }
+  }, [isAuthenticated]);
+
+  const validateForm = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (!formData.full_name.trim()) {
+      setLocalError('El nombre completo es requerido');
+      return false;
+    }
+    if (!formData.email.trim()) {
+      setLocalError('El email es requerido');
+      return false;
+    }
+    if (!emailRegex.test(formData.email)) {
+      setLocalError('El email no tiene un formato válido');
+      return false;
+    }
+    if (!formData.username.trim()) {
+      setLocalError('El nombre de usuario es requerido');
+      return false;
+    }
+    if (formData.username.length < 3) {
+      setLocalError('El nombre de usuario debe tener al menos 3 caracteres');
+      return false;
+    }
+    if (!formData.password.trim()) {
+      setLocalError('La contraseña es requerida');
+      return false;
+    }
+    if (formData.password.length < 8) {
+      setLocalError('La contraseña debe tener al menos 8 caracteres');
+      return false;
+    }
+    if (formData.password !== formData.password_confirm) {
+      setLocalError('Las contraseñas no coinciden');
+      return false;
+    }
+    return true;
+  };
+
+  const handleRegister = async () => {
+    setLocalError(null);
+    setSuccessMessage(null);
+
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      await register(formData);
+      setSuccessMessage('¡Registro exitoso! Redirigiendo...');
+      // La redirección se maneja automáticamente por el useEffect
+    } catch (err: any) {
+      setLocalError(err.message);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   return (
     <View style={styles.mainContainer}>
@@ -127,13 +219,34 @@ export default function RegisterScreen() {
       >
         <Text style={styles.title}>Crear Cuenta</Text>
         
+        {/* Alertas de error y éxito */}
+        <Alert 
+          type="error" 
+          message={error || localError || ''} 
+          visible={!!(error || localError)}
+          onClose={() => {
+            clearError();
+            setLocalError(null);
+          }}
+        />
+        
+        <Alert 
+          type="success" 
+          message={successMessage || ''} 
+          visible={!!successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
+        
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Nombre</Text>
+          <Text style={styles.label}>Nombre Completo</Text>
           <View style={styles.inputWrapper}>
             <TextInput 
               style={styles.input}
-              placeholder="Ingresa tu nombre"
+              placeholder="Ingresa tu nombre completo"
+              value={formData.full_name}
+              onChangeText={(value) => handleInputChange('full_name', value)}
               placeholderTextColor={theme.placeholderText}
+              editable={!isLoading}
             />
             <FontAwesome5 name="user" size={baseUnit * 0.9} color={Colors.light.textSecondary} style={styles.inputIcon} />
           </View>
@@ -145,11 +258,32 @@ export default function RegisterScreen() {
             <TextInput 
               style={styles.input}
               placeholder="Ingresa tu email"
+              value={formData.email}
+              onChangeText={(value) => handleInputChange('email', value)}
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
               placeholderTextColor={theme.placeholderText}
+              editable={!isLoading}
             />
             <FontAwesome5 name="envelope" size={baseUnit * 0.9} color={Colors.light.textSecondary} style={styles.inputIcon} />
+          </View>
+        </View>
+        
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Nombre de Usuario</Text>
+          <View style={styles.inputWrapper}>
+            <TextInput 
+              style={styles.input}
+              placeholder="Elige un nombre de usuario"
+              value={formData.username}
+              onChangeText={(value) => handleInputChange('username', value)}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholderTextColor={theme.placeholderText}
+              editable={!isLoading}
+            />
+            <FontAwesome5 name="at" size={baseUnit * 0.9} color={Colors.light.textSecondary} style={styles.inputIcon} />
           </View>
         </View>
         
@@ -158,11 +292,23 @@ export default function RegisterScreen() {
           <View style={styles.inputWrapper}>
             <TextInput 
               style={styles.input}
-              placeholder="Ingresa tu contraseña"
-              secureTextEntry={true}
+              placeholder="Mínimo 8 caracteres"
+              value={formData.password}
+              onChangeText={(value) => handleInputChange('password', value)}
+              secureTextEntry={!showPassword}
               placeholderTextColor={theme.placeholderText}
+              editable={!isLoading}
             />
-            <FontAwesome5 name="lock" size={baseUnit * 0.9} color={Colors.light.textSecondary} style={styles.inputIcon} />
+            <TouchableOpacity 
+              onPress={() => setShowPassword(!showPassword)}
+              style={styles.inputIcon}
+            >
+              <FontAwesome5 
+                name={showPassword ? "eye-slash" : "eye"} 
+                size={baseUnit * 0.9} 
+                color={Colors.light.textSecondary} 
+              />
+            </TouchableOpacity>
           </View>
         </View>
         
@@ -171,19 +317,39 @@ export default function RegisterScreen() {
           <View style={styles.inputWrapper}>
             <TextInput 
               style={styles.input}
-              placeholder="Confirma tu contraseña"
-              secureTextEntry={true}
+              placeholder="Repite tu contraseña"
+              value={formData.password_confirm}
+              onChangeText={(value) => handleInputChange('password_confirm', value)}
+              secureTextEntry={!showConfirmPassword}
               placeholderTextColor={theme.placeholderText}
+              editable={!isLoading}
             />
-            <FontAwesome5 name="check-circle" size={baseUnit * 0.9} color={Colors.light.textSecondary} style={styles.inputIcon} />
+            <TouchableOpacity 
+              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              style={styles.inputIcon}
+            >
+              <FontAwesome5 
+                name={showConfirmPassword ? "eye-slash" : "eye"} 
+                size={baseUnit * 0.9} 
+                color={Colors.light.textSecondary} 
+              />
+            </TouchableOpacity>
           </View>
         </View>
         
         <TouchableOpacity 
-          style={styles.button}
-          onPress={() => router.replace('/(tabs)')}
+          style={[styles.button, isLoading && styles.buttonDisabled]}
+          onPress={handleRegister}
+          disabled={isLoading}
         >
-          <Text style={styles.buttonText}>Registrarse</Text>
+          {isLoading ? (
+            <View style={styles.buttonLoading}>
+              <ActivityIndicator size="small" color="#FFFFFF" />
+              <Text style={styles.buttonText}>Registrando...</Text>
+            </View>
+          ) : (
+            <Text style={styles.buttonText}>Registrarse</Text>
+          )}
         </TouchableOpacity>
         
         <View style={styles.footer}>
@@ -341,6 +507,14 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
     marginTop: height * 0.02,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  buttonLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonText: {
     color: '#FFFFFF',

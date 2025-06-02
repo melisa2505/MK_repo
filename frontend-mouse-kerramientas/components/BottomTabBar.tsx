@@ -3,6 +3,7 @@ import { router, usePathname } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../constants/Colors';
+import { useAuth } from '../context/AuthContext';
 
 type TabItem = {
   name: string;
@@ -11,30 +12,30 @@ type TabItem = {
   isDynamic?: boolean; // Para indicar si es una ruta dinámica
 };
 
-// Mock del ID del usuario autenticado
-const myId = "123"; // En el futuro esto vendrá de tu hook de autenticación
-
-const tabs: TabItem[] = [
-  { name: 'Home', route: '/', icon: 'home' },
-  { name: 'Browse', route: '/categories', icon: 'search' },
-  { name: 'Favoritos', route: '/favorites', icon: 'heart' },
-  { name: 'Carrito', route: '/cart', icon: 'shopping-cart' },
-  { name: 'Perfil', route: `/profile/${myId}`, icon: 'user', isDynamic: true },
-];
-
 export default function BottomTabBar() {
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  const tabs: TabItem[] = [
+    { name: 'Home', route: '/', icon: 'home' },
+    { name: 'Browse', route: '/categories', icon: 'search' },
+    { name: 'Favoritos', route: '/favorites', icon: 'heart' },
+    { name: 'Carrito', route: '/cart', icon: 'shopping-cart' },
+    { name: 'Perfil', route: '/profile', icon: 'user' },
+  ];
 
   const isTabActive = (tab: TabItem) => {
     if (tab.route === '/') {
       return pathname === '/' || pathname === '/index';
     }
-    // Para rutas dinámicas como /profile/[id], verificar si empieza con /profile/
-    if (tab.isDynamic && tab.route.includes('/profile/')) {
-      return pathname.startsWith('/profile/');
+    // Para la ruta de perfil
+    if (tab.route === '/profile') {
+      return pathname.startsWith('/profile');
     }
     return pathname.startsWith(tab.route);
-  };  return (
+  };
+
+  return (
     <View style={styles.container}>
       {tabs.map((tab) => {
         const isActive = isTabActive(tab);
@@ -80,7 +81,8 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginBottom: 4,
-  },  label: {
+  },
+  label: {
     fontSize: 12,
   },
 });

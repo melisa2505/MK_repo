@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider } from '../context/AuthContext';
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -18,19 +19,21 @@ export default function RootLayout() {
   return (
     <View style={styles.container}>
       <SafeAreaProvider>
-        <ThemeProvider value={DefaultTheme}>
-          <Stack screenOptions={{
-            headerShown: false,
-            contentStyle: {
-              backgroundColor: 'transparent',
-            }
-          }}>
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="dark" />
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider value={DefaultTheme}>
+            <Stack screenOptions={{
+              headerShown: false,
+              contentStyle: {
+                backgroundColor: 'transparent',
+              }
+            }}>
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="dark" />
+          </ThemeProvider>
+        </AuthProvider>
       </SafeAreaProvider>
     </View>
   );
