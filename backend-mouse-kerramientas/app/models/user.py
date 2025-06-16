@@ -25,6 +25,7 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     ratings = relationship("Rating", back_populates="user")
+    rentals = relationship("Rental", back_populates="user")
 
     class Config:
         """Configuración del modelo."""

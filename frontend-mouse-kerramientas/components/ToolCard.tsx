@@ -15,9 +15,11 @@ import StarRating from './StarRating';
 interface ToolCardProps {
   tool: Tool;
   onPress: (tool: Tool) => void;
+  onRent?: (tool: Tool) => void;
+  showRentButton?: boolean;
 }
 
-export default function ToolCard({ tool, onPress }: ToolCardProps) {
+export default function ToolCard({ tool, onPress, onRent, showRentButton = false }: ToolCardProps) {
   const [ratingStats, setRatingStats] = useState<RatingStats | null>(null);
 
   useEffect(() => {
@@ -136,6 +138,23 @@ export default function ToolCard({ tool, onPress }: ToolCardProps) {
             <Text style={styles.ratingText}>
               {`(${ratingStats.total_ratings})`}
             </Text>
+          </View>
+        )}
+
+        {showRentButton && (
+          <View style={styles.actionContainer}>
+            {tool.is_available ? (
+              <TouchableOpacity
+                style={styles.rentButton}
+                onPress={() => onRent?.(tool)}
+              >
+                <Text style={styles.rentButtonText}>Solicitar Alquiler</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.unavailableButton}>
+                <Text style={styles.unavailableButtonText}>No Disponible</Text>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -267,5 +286,35 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 14,
     color: Colors.light.textSecondary,
+  },
+  actionContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  rentButton: {
+    backgroundColor: '#3498db',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  rentButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  unavailableButton: {
+    backgroundColor: '#95a5a6',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  unavailableButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

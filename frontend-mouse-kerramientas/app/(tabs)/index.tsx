@@ -46,10 +46,19 @@ export default function HomeScreen() {
     });
   };
 
+  const handleRentTool = (tool: Tool) => {
+    router.push({
+      pathname: '/rentals/create/[toolId]',
+      params: { toolId: tool.id.toString() }
+    });
+  };
+
   const renderFeaturedTool = ({ item }: { item: Tool }) => (
     <ToolCard 
       tool={item} 
       onPress={handleToolPress}
+      onRent={handleRentTool}
+      showRentButton={true}
     />
   );
 

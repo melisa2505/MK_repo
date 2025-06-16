@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Rating, RatingCreate, RatingStats, RatingUpdate, RatingWithUser } from '../types/rating';
+import { Rental, RentalCreate, RentalReturn, RentalStats, RentalWithDetails } from '../types/rental';
 import { FilterOptions, SearchParams, ToolCondition, Tool as ToolType } from '../types/tool';
 
 // Configuración base de la API - CAMBIA ESTA IP POR LA DE TU COMPUTADORA
@@ -463,6 +464,89 @@ export const ratingsService = {
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Error al obtener mis calificaciones');
+    }
+  },
+};
+
+export const rentalsService = {
+  async createRental(rental: RentalCreate): Promise<Rental> {
+    try {
+      const response = await api.post<Rental>('/api/rentals/', rental);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al crear el alquiler');
+    }
+  },
+
+  async getMyRentals(skip = 0, limit = 100): Promise<RentalWithDetails[]> {
+    try {
+      const response = await api.get<RentalWithDetails[]>(`/api/rentals/user/me?skip=${skip}&limit=${limit}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al obtener mis alquileres');
+    }
+  },
+
+  async getMyActiveRentals(): Promise<RentalWithDetails[]> {
+    try {
+      const response = await api.get<RentalWithDetails[]>('/api/rentals/user/me/active');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al obtener mis alquileres activos');
+    }
+  },
+
+  async getRental(rentalId: number): Promise<RentalWithDetails> {
+    try {
+      const response = await api.get<RentalWithDetails>(`/api/rentals/${rentalId}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al obtener el alquiler');
+    }
+  },
+
+  async activateRental(rentalId: number): Promise<Rental> {
+    try {
+      const response = await api.put<Rental>(`/api/rentals/${rentalId}/activate`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al activar el alquiler');
+    }
+  },
+
+  async returnRental(rentalId: number, returnData: RentalReturn): Promise<Rental> {
+    try {
+      const response = await api.put<Rental>(`/api/rentals/${rentalId}/return`, returnData);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al devolver la herramienta');
+    }
+  },
+
+  async cancelRental(rentalId: number): Promise<Rental> {
+    try {
+      const response = await api.put<Rental>(`/api/rentals/${rentalId}/cancel`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al cancelar el alquiler');
+    }
+  },
+
+  async getRentalStats(): Promise<RentalStats> {
+    try {
+      const response = await api.get<RentalStats>('/api/rentals/stats/general');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al obtener estadísticas de alquileres');
+    }
+  },
+
+  async checkOverdueRentals(): Promise<{ message: string }> {
+    try {
+      const response = await api.post<{ message: string }>('/api/rentals/check-overdue');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al verificar alquileres vencidos');
     }
   },
 };
