@@ -1,12 +1,16 @@
 """
 Rutas para la gestión de herramientas.
 """
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from typing import Annotated, List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
+from ..crud import admin as crud_admin
 from ..database.database import get_db
+from ..dependencies import get_current_admin_user, get_current_user
 from ..models.tool import Tool as ToolModel
+from ..models.user import User
+from ..schemas.admin import AdminLogCreate
 from ..schemas.tool import Tool, ToolCreate, ToolDetail, ToolUpdate
 
 router = APIRouter()
@@ -43,27 +47,38 @@ def get_tools(
 
 
 @router.post("/", response_model=Tool, status_code=status.HTTP_201_CREATED)
-def create_tool(tool: ToolCreate, db: Session = Depends(get_db)):
+def create_tool(
+    tool: ToolCreate,
+    request: Request,
+    current_admin: Annotated[User, Depends(get_current_admin_user)],
+    db: Session = Depends(get_db)
+):
     """
     Crea una nueva herramienta.
     
     - **tool**: Datos de la herramienta a crear
     """
-    # Aquí normalmente validarías que la categoría existe
-    # y que el usuario actual tiene permisos
-    
-    # Para este ejemplo, asumimos que el ID del propietario es 1
-    # En una implementación real, esto vendría del token JWT
-    owner_id = 1
-    
-    db_tool = ToolModel(
-        **tool.dict(),
-        owner_id=owner_id
-    )
+    db_tool = ToolModel(**tool.dict())
     
     db.add(db_tool)
     db.commit()
     db.refresh(db_tool)
+    
+    log = AdminLogCreate(
+        action="CREATE",
+        resource="tool",
+        resource_id=str(db_tool.id),
+        details=f"Created tool: {tool.name}"
+    )
+    client_ip = request.client.host if request.client else None
+    crud_admin.create_admin_log(
+        db=db,
+        log=log,
+        admin_id=current_admin.id,
+        admin_username=current_admin.username,
+        ip_address=client_ip
+    )
+    
     return db_tool
 
 
@@ -87,6 +102,8 @@ def get_tool(tool_id: int, db: Session = Depends(get_db)):
 def update_tool(
     tool_id: int,
     tool_update: ToolUpdate,
+    request: Request,
+    current_admin: Annotated[User, Depends(get_current_admin_user)],
     db: Session = Depends(get_db)
 ):
     """
@@ -102,18 +119,38 @@ def update_tool(
             detail="Herramienta no encontrada"
         )
     
-    # Actualiza solo los campos que no son None en el request
     update_data = tool_update.dict(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_tool, key, value)
     
     db.commit()
     db.refresh(db_tool)
+    
+    log = AdminLogCreate(
+        action="UPDATE",
+        resource="tool",
+        resource_id=str(tool_id),
+        details=f"Updated tool: {db_tool.name}"
+    )
+    client_ip = request.client.host if request.client else None
+    crud_admin.create_admin_log(
+        db=db,
+        log=log,
+        admin_id=current_admin.id,
+        admin_username=current_admin.username,
+        ip_address=client_ip
+    )
+    
     return db_tool
 
 
 @router.delete("/{tool_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_tool(tool_id: int, db: Session = Depends(get_db)):
+def delete_tool(
+    tool_id: int,
+    request: Request,
+    current_admin: Annotated[User, Depends(get_current_admin_user)],
+    db: Session = Depends(get_db)
+):
     """
     Elimina una herramienta.
     
@@ -126,6 +163,23 @@ def delete_tool(tool_id: int, db: Session = Depends(get_db)):
             detail="Herramienta no encontrada"
         )
     
+    tool_name = db_tool.name
     db.delete(db_tool)
     db.commit()
+    
+    log = AdminLogCreate(
+        action="DELETE",
+        resource="tool",
+        resource_id=str(tool_id),
+        details=f"Deleted tool: {tool_name}"
+    )
+    client_ip = request.client.host if request.client else None
+    crud_admin.create_admin_log(
+        db=db,
+        log=log,
+        admin_id=current_admin.id,
+        admin_username=current_admin.username,
+        ip_address=client_ip
+    )
+    
     return None

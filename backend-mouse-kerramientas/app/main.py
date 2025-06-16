@@ -48,6 +48,10 @@ app.include_router(tools.router, prefix="/api/tools", tags=["tools"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(hybrid.router, prefix="/api/hybrid", tags=["hybrid"])
 
+# Importar y registrar las rutas de admin
+from .routes import admin
+app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+
 @app.get("/", tags=["health"])
 async def root():
     """

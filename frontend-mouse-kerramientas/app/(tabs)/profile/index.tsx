@@ -3,7 +3,7 @@ import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Alert as RNAlert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function ProfileScreen() {
@@ -165,6 +165,23 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
+        {user.is_superuser && (
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>Administración</Text>
+            
+            <TouchableOpacity 
+              style={[styles.menuItem, styles.adminMenuItem]}
+              onPress={() => router.push('/(admin)')}
+            >
+              <View style={styles.menuItemLeft}>
+                <FontAwesome5 name="cogs" size={20} color="#dc2626" />
+                <Text style={[styles.menuItemText, styles.adminMenuText]}>Panel de Administración</Text>
+              </View>
+              <FontAwesome5 name="chevron-right" size={16} color="#dc2626" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         <TouchableOpacity 
           style={[styles.logoutButton, isLoggingOut && styles.logoutButtonDisabled]}
           onPress={handleLogout}
@@ -290,6 +307,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.light.text,
     marginLeft: 16,
+  },
+  adminMenuItem: {
+    backgroundColor: '#fef2f2',
+    borderLeftWidth: 4,
+    borderLeftColor: '#dc2626',
+  },
+  adminMenuText: {
+    color: '#dc2626',
+    fontWeight: '600',
   },
   logoutButton: {
     flexDirection: 'row',

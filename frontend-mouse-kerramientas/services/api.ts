@@ -61,6 +61,7 @@ export interface User {
   username: string;
   full_name?: string;
   is_active: boolean;
+  is_superuser?: boolean;
   created_at: string;
 }
 
@@ -71,6 +72,106 @@ export interface AuthResponse {
 
 export interface ApiError {
   detail: string;
+}
+
+export interface Tool {
+  id: number;
+  name: string;
+  description?: string;
+  brand?: string;
+  model?: string;
+  category: string;
+  daily_price: number;
+  condition: string;
+  is_available: boolean;
+  image_url?: string;
+}
+
+export interface ToolCreate {
+  name: string;
+  description?: string;
+  brand?: string;
+  model?: string;
+  category: string;
+  daily_price: number;
+  condition?: string;
+  is_available?: boolean;
+  image_url?: string;
+}
+
+export interface ToolUpdate {
+  name?: string;
+  description?: string;
+  brand?: string;
+  model?: string;
+  category?: string;
+  daily_price?: number;
+  condition?: string;
+  is_available?: boolean;
+  image_url?: string;
+}
+
+export interface AdminLog {
+  id: number;
+  admin_id: number;
+  admin_username: string;
+  action: string;
+  resource: string;
+  resource_id?: string;
+  details?: string;
+  ip_address?: string;
+  created_at: string;
+}
+
+export interface BackupConfig {
+  id: number;
+  name: string;
+  description?: string;
+  config_data: string;
+  created_by: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface BackupConfigCreate {
+  name: string;
+  description?: string;
+  config_data: string;
+}
+
+export interface BackupConfigUpdate {
+  name?: string;
+  description?: string;
+  config_data?: string;
+  is_active?: boolean;
+}
+
+export interface ToolStats {
+  total_tools: number;
+  available_tools: number;
+  rented_tools: number;
+  tools_by_category: Record<string, number>;
+  tools_by_condition: Record<string, number>;
+}
+
+export interface UserStats {
+  total_users: number;
+  active_users: number;
+  admin_users: number;
+  recent_registrations: number;
+}
+
+export interface AdminDashboard {
+  tool_stats: ToolStats;
+  user_stats: UserStats;
+  recent_logs: AdminLog[];
+}
+
+export interface BackupFile {
+  filename: string;
+  size: number;
+  created_at: string;
 }
 
 // Servicios de autenticación
@@ -146,6 +247,134 @@ export const authService = {
       return null;
     } catch {
       return null;
+    }
+  },
+};
+
+export const adminService = {
+  async getDashboard(): Promise<AdminDashboard> {
+    try {
+      const response = await api.get<AdminDashboard>('/api/admin/dashboard');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al obtener dashboard');
+    }
+  },
+
+  async getLogs(skip = 0, limit = 100): Promise<AdminLog[]> {
+    try {
+      const response = await api.get<AdminLog[]>(`/api/admin/logs?skip=${skip}&limit=${limit}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al obtener logs');
+    }
+  },
+
+  async getBackupConfigs(skip = 0, limit = 100): Promise<BackupConfig[]> {
+    try {
+      const response = await api.get<BackupConfig[]>(`/api/admin/backup-configs?skip=${skip}&limit=${limit}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al obtener configuraciones');
+    }
+  },
+
+  async createBackupConfig(config: BackupConfigCreate): Promise<BackupConfig> {
+    try {
+      const response = await api.post<BackupConfig>('/api/admin/backup-configs', config);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al crear configuración');
+    }
+  },
+
+  async updateBackupConfig(id: number, config: BackupConfigUpdate): Promise<BackupConfig> {
+    try {
+      const response = await api.put<BackupConfig>(`/api/admin/backup-configs/${id}`, config);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al actualizar configuración');
+    }
+  },
+
+  async deleteBackupConfig(id: number): Promise<void> {
+    try {
+      await api.delete(`/api/admin/backup-configs/${id}`);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al eliminar configuración');
+    }
+  },
+
+  async createBackup(): Promise<{ message: string; filename: string }> {
+    try {
+      const response = await api.post('/api/admin/backup/create');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al crear backup');
+    }
+  },
+
+  async listBackups(): Promise<{ backups: BackupFile[] }> {
+    try {
+      const response = await api.get('/api/admin/backup/list');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al listar backups');
+    }
+  },
+
+  async restoreBackup(filename: string): Promise<{ message: string }> {
+    try {
+      const response = await api.post(`/api/admin/backup/restore/${filename}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al restaurar backup');
+    }
+  },
+};
+
+export const toolService = {
+  async getTools(skip = 0, limit = 100): Promise<Tool[]> {
+    try {
+      const response = await api.get<Tool[]>(`/api/tools?skip=${skip}&limit=${limit}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al obtener herramientas');
+    }
+  },
+
+  async getTool(id: number): Promise<Tool> {
+    try {
+      const response = await api.get<Tool>(`/api/tools/${id}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al obtener herramienta');
+    }
+  },
+
+  async createTool(tool: ToolCreate): Promise<Tool> {
+    try {
+      const response = await api.post<Tool>('/api/tools', tool);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al crear herramienta');
+    }
+  },
+
+  async updateTool(id: number, tool: ToolUpdate): Promise<Tool> {
+    try {
+      const response = await api.put<Tool>(`/api/tools/${id}`, tool);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al actualizar herramienta');
+    }
+  },
+
+  async deleteTool(id: number): Promise<void> {
+    try {
+      await api.delete(`/api/tools/${id}`);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al eliminar herramienta');
     }
   },
 };

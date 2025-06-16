@@ -25,6 +25,7 @@ echo "   - Asegúrate de que MongoDB esté ejecutándose en el puerto configurad
 
 echo "4. Para inicializar las bases de datos, ejecuta:"
 echo "   python scripts/init_database.py"
+echo "   python scripts/create_admin_tables.py"
 
 echo "5. Para ejecutar la aplicación en modo desarrollo:"
 echo "   python -m app.main"
