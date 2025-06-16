@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
     Image,
     StyleSheet,
@@ -6,7 +7,10 @@ import {
     View,
 } from 'react-native';
 import { Colors } from '../constants/Colors';
+import { ratingsService } from '../services/api';
+import { RatingStats } from '../types/rating';
 import { Tool } from '../types/tool';
+import StarRating from './StarRating';
 
 interface ToolCardProps {
   tool: Tool;
@@ -14,6 +18,21 @@ interface ToolCardProps {
 }
 
 export default function ToolCard({ tool, onPress }: ToolCardProps) {
+  const [ratingStats, setRatingStats] = useState<RatingStats | null>(null);
+
+  useEffect(() => {
+    loadRatingStats();
+  }, [tool.id]);
+
+  const loadRatingStats = async () => {
+    try {
+      const stats = await ratingsService.getToolRatingStats(tool.id);
+      setRatingStats(stats);
+    } catch (error) {
+      console.error('Error loading rating stats:', error);
+    }
+  };
+
   const getConditionColor = (condition: string) => {
     switch (condition.toLowerCase()) {
       case 'new':
@@ -104,6 +123,20 @@ export default function ToolCard({ tool, onPress }: ToolCardProps) {
           <Text style={styles.description} numberOfLines={2}>
             {tool.description}
           </Text>
+        )}
+
+        {ratingStats && ratingStats.total_ratings > 0 && (
+          <View style={styles.ratingContainer}>
+            <StarRating 
+              rating={ratingStats.average_rating}
+              readonly={true}
+              size="small"
+              showValue={false}
+            />
+            <Text style={styles.ratingText}>
+              {`(${ratingStats.total_ratings})`}
+            </Text>
+          </View>
         )}
       </View>
     </TouchableOpacity>
@@ -222,5 +255,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.textSecondary,
     lineHeight: 20,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  starContainer: {
+    marginRight: 4,
+  },
+  ratingText: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
   },
 });

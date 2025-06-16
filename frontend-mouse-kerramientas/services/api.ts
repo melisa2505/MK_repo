@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { Rating, RatingCreate, RatingStats, RatingUpdate, RatingWithUser } from '../types/rating';
 import { FilterOptions, SearchParams, ToolCondition, Tool as ToolType } from '../types/tool';
 
 // Configuración base de la API - CAMBIA ESTA IP POR LA DE TU COMPUTADORA
@@ -406,6 +407,62 @@ export const toolsService = {
       await api.delete(`/api/tools/${id}`);
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Error al eliminar herramienta');
+    }
+  },
+};
+
+// Servicios de calificaciones
+export const ratingsService = {
+  async getToolRatings(toolId: number, skip = 0, limit = 100): Promise<RatingWithUser[]> {
+    try {
+      const response = await api.get<RatingWithUser[]>(`/api/ratings/tool/${toolId}?skip=${skip}&limit=${limit}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al obtener calificaciones');
+    }
+  },
+
+  async getToolRatingStats(toolId: number): Promise<RatingStats> {
+    try {
+      const response = await api.get<RatingStats>(`/api/ratings/tool/${toolId}/stats`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al obtener estadísticas de calificación');
+    }
+  },
+
+  async createRating(rating: RatingCreate): Promise<Rating> {
+    try {
+      const response = await api.post<Rating>('/api/ratings', rating);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al crear calificación');
+    }
+  },
+
+  async updateRating(ratingId: number, rating: RatingUpdate): Promise<Rating> {
+    try {
+      const response = await api.put<Rating>(`/api/ratings/${ratingId}`, rating);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al actualizar calificación');
+    }
+  },
+
+  async deleteRating(ratingId: number): Promise<void> {
+    try {
+      await api.delete(`/api/ratings/${ratingId}`);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al eliminar calificación');
+    }
+  },
+
+  async getMyRatings(skip = 0, limit = 100): Promise<Rating[]> {
+    try {
+      const response = await api.get<Rating[]>(`/api/ratings/user/me?skip=${skip}&limit=${limit}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al obtener mis calificaciones');
     }
   },
 };
