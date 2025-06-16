@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from .database.database import Base, engine
 from .config.mongodb import connect_to_mongo, close_mongo_connection
-from .routes import auth, products, tools, users, hybrid
+from .routes import auth, products, tools, users, hybrid, ratings
 
 load_dotenv()
 
@@ -47,6 +47,7 @@ app.include_router(products.router, prefix="/api/products", tags=["products"])
 app.include_router(tools.router, prefix="/api/tools", tags=["tools"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(hybrid.router, prefix="/api/hybrid", tags=["hybrid"])
+app.include_router(ratings.router, prefix="/api/ratings", tags=["ratings"])
 
 # Importar y registrar las rutas de admin
 from .routes import admin
