@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { FilterOptions, SearchParams, ToolCondition, Tool as ToolType } from '../types/tool';
 
 // Configuración base de la API - CAMBIA ESTA IP POR LA DE TU COMPUTADORA
 const API_BASE_URL = 'http://localhost:8000'; // Para desarrollo local
@@ -89,13 +90,12 @@ export interface Tool {
 
 export interface ToolCreate {
   name: string;
-  description?: string;
-  brand?: string;
-  model?: string;
+  description: string;
+  brand: string;
+  model: string;
   category: string;
   daily_price: number;
-  condition?: string;
-  is_available?: boolean;
+  condition: ToolCondition;
   image_url?: string;
 }
 
@@ -106,7 +106,7 @@ export interface ToolUpdate {
   model?: string;
   category?: string;
   daily_price?: number;
-  condition?: string;
+  condition?: ToolCondition;
   is_available?: boolean;
   image_url?: string;
 }
@@ -333,13 +333,44 @@ export const adminService = {
   },
 };
 
-export const toolService = {
-  async getTools(skip = 0, limit = 100): Promise<Tool[]> {
+// Servicios de herramientas
+export const toolsService = {
+  async getTools(): Promise<ToolType[]> {
     try {
-      const response = await api.get<Tool[]>(`/api/tools?skip=${skip}&limit=${limit}`);
+      const response = await api.get<ToolType[]>('/api/tools');
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Error al obtener herramientas');
+    }
+  },
+
+  async searchTools(params: SearchParams): Promise<ToolType[]> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.q) queryParams.append('q', params.q);
+      if (params.category) queryParams.append('category', params.category);
+      if (params.brand) queryParams.append('brand', params.brand);
+      if (params.condition) queryParams.append('condition', params.condition);
+      if (params.min_price !== undefined) queryParams.append('min_price', params.min_price.toString());
+      if (params.max_price !== undefined) queryParams.append('max_price', params.max_price.toString());
+      if (params.available !== undefined) queryParams.append('available', params.available.toString());
+      if (params.skip) queryParams.append('skip', params.skip.toString());
+      if (params.limit) queryParams.append('limit', params.limit.toString());
+
+      const response = await api.get<ToolType[]>(`/api/tools/search?${queryParams.toString()}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al buscar herramientas');
+    }
+  },
+
+  async getFilterOptions(): Promise<FilterOptions> {
+    try {
+      const response = await api.get<FilterOptions>('/api/tools/filters/options');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al obtener opciones de filtro');
     }
   },
 

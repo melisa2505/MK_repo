@@ -14,7 +14,7 @@ class ToolBase(BaseModel):
     model: str = Field(..., min_length=2, max_length=50, example="DCD777C2")
     daily_price: float = Field(..., gt=0, example=25.5)
     condition: ToolCondition = Field(default=ToolCondition.GOOD)
-    category_id: int = Field(..., example=1)
+    category: str = Field(..., min_length=2, max_length=50, example="Herramientas eléctricas")
     image_url: Optional[str] = Field(None, example="https://example.com/image.jpg")
 
 
@@ -31,7 +31,7 @@ class ToolUpdate(BaseModel):
     model: Optional[str] = Field(None, min_length=2, max_length=50)
     daily_price: Optional[float] = Field(None, gt=0)
     condition: Optional[ToolCondition] = None
-    category_id: Optional[int] = None
+    category: Optional[str] = Field(None, min_length=2, max_length=50)
     is_available: Optional[bool] = None
     image_url: Optional[str] = None
 
@@ -40,7 +40,6 @@ class Tool(ToolBase):
     """Esquema para respuestas de herramienta."""
     id: int
     is_available: bool
-    owner_id: int
 
     class Config:
         """Configuración del modelo."""
