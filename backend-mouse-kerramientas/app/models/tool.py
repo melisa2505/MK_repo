@@ -37,7 +37,7 @@ class Tool(Base):
     # Relaciones comentadas temporalmente
     # owner = relationship("User", back_populates="tools")
     # category = relationship("Category", back_populates="tools")
-    # rentals = relationship("Rental", back_populates="tool")
+    rentals = relationship("Rental", back_populates="tool")
     ratings = relationship("Rating", back_populates="tool")
 
     class Config:

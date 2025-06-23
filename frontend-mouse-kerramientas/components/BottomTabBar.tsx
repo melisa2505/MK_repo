@@ -19,8 +19,8 @@ export default function BottomTabBar() {
   const tabs: TabItem[] = [
     { name: 'Home', route: '/', icon: 'home' },
     { name: 'Browse', route: '/categories', icon: 'search' },
+    { name: 'Alquileres', route: '/rentals', icon: 'tools' },
     { name: 'Favoritos', route: '/favorites', icon: 'heart' },
-    { name: 'Carrito', route: '/cart', icon: 'shopping-cart' },
     { name: 'Perfil', route: '/profile', icon: 'user' },
   ];
 
