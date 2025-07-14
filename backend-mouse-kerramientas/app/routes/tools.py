@@ -5,8 +5,11 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from ..crud import tool as crud_tool
 from ..database.database import get_db
+from ..dependencies import get_current_active_user
 from ..models.tool import Tool as ToolModel
+from ..models.user import User
 from ..schemas.tool import Tool, ToolCreate, ToolDetail, ToolUpdate
 
 router = APIRouter()
@@ -42,31 +45,6 @@ def get_tools(
     return tools
 
 
-@router.post("/", response_model=Tool, status_code=status.HTTP_201_CREATED)
-def create_tool(tool: ToolCreate, db: Session = Depends(get_db)):
-    """
-    Crea una nueva herramienta.
-    
-    - **tool**: Datos de la herramienta a crear
-    """
-    # Aquí normalmente validarías que la categoría existe
-    # y que el usuario actual tiene permisos
-    
-    # Para este ejemplo, asumimos que el ID del propietario es 1
-    # En una implementación real, esto vendría del token JWT
-    owner_id = 1
-    
-    db_tool = ToolModel(
-        **tool.dict(),
-        owner_id=owner_id
-    )
-    
-    db.add(db_tool)
-    db.commit()
-    db.refresh(db_tool)
-    return db_tool
-
-
 @router.get("/{tool_id}", response_model=ToolDetail)
 def get_tool(tool_id: int, db: Session = Depends(get_db)):
     """
@@ -83,11 +61,49 @@ def get_tool(tool_id: int, db: Session = Depends(get_db)):
     return tool
 
 
+@router.post("/", response_model=Tool, status_code=status.HTTP_201_CREATED)
+def create_tool(
+    tool: ToolCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Crea una nueva herramienta.
+    
+    - **tool**: Datos de la herramienta a crear
+    """
+    # Aquí normalmente validarías que la categoría existe
+    # y que el usuario actual tiene permisos
+    
+    # Obtener el ID del propietario del usuario actual
+    owner_id = current_user.id
+    
+    return crud_tool.create_tool(db, tool, owner_id)
+
+
+@router.get("/user/{user_id}", response_model=List[Tool])
+def get_user_tools(
+    user_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene todas las herramientas de un usuario específico.
+    
+    - **user_id**: ID del propietario de la herramienta
+    - **skip**: Número de registros a saltar (para paginación)
+    - **limit**: Número máximo de registros a devolver
+    """
+    return crud_tool.get_tools_by_user(db, user_id, skip, limit)
+
+
 @router.put("/{tool_id}", response_model=Tool)
 def update_tool(
     tool_id: int,
     tool_update: ToolUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     """
     Actualiza una herramienta existente.
@@ -95,6 +111,7 @@ def update_tool(
     - **tool_id**: ID de la herramienta a actualizar
     - **tool_update**: Datos a actualizar en la herramienta
     """
+    # Primero verifica si la herramienta existe
     db_tool = db.query(ToolModel).filter(ToolModel.id == tool_id).first()
     if db_tool is None:
         raise HTTPException(
@@ -102,28 +119,40 @@ def update_tool(
             detail="Herramienta no encontrada"
         )
     
-    # Actualiza solo los campos que no son None en el request
-    update_data = tool_update.dict(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_tool, key, value)
+    # Verifica si el usuario actual es el propietario de la herramienta
+    if db_tool.owner_id != current_user.id and not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No autorizado para actualizar esta herramienta"
+        )
     
-    db.commit()
-    db.refresh(db_tool)
-    return db_tool
+    return crud_tool.update_tool(db, tool_id, tool_update)
 
 
 @router.delete("/{tool_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_tool(tool_id: int, db: Session = Depends(get_db)):
+def delete_tool(
+    tool_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     """
     Elimina una herramienta.
     
     - **tool_id**: ID de la herramienta a eliminar
     """
+    # Primero verifica si la herramienta existe
     db_tool = db.query(ToolModel).filter(ToolModel.id == tool_id).first()
     if db_tool is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Herramienta no encontrada"
+        )
+    
+    # Verifica si el usuario actual es el propietario de la herramienta
+    if db_tool.owner_id != current_user.id and not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No autorizado para eliminar esta herramienta"
         )
     
     db.delete(db_tool)

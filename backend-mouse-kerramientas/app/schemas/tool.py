@@ -13,6 +13,7 @@ class ToolBase(BaseModel):
     brand: str = Field(..., min_length=2, max_length=50, example="DeWalt")
     model: str = Field(..., min_length=2, max_length=50, example="DCD777C2")
     daily_price: float = Field(..., gt=0, example=25.5)
+    warranty: float = Field(default=0.0, ge=0, example=50.0)
     condition: ToolCondition = Field(default=ToolCondition.GOOD)
     category_id: int = Field(..., example=1)
     image_url: Optional[str] = Field(None, example="https://example.com/image.jpg")
@@ -30,6 +31,7 @@ class ToolUpdate(BaseModel):
     brand: Optional[str] = Field(None, min_length=2, max_length=50)
     model: Optional[str] = Field(None, min_length=2, max_length=50)
     daily_price: Optional[float] = Field(None, gt=0)
+    warranty: Optional[float] = Field(None, ge=0)
     condition: Optional[ToolCondition] = None
     category_id: Optional[int] = None
     is_available: Optional[bool] = None
@@ -44,7 +46,7 @@ class Tool(ToolBase):
 
     class Config:
         """Configuración del modelo."""
-        orm_mode = True
+        from_attributes = True
 
 
 class ToolDetail(Tool):

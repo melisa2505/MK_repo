@@ -25,6 +25,8 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     """
     Registrar un nuevo usuario
     """
+
+    print(f"Registering user: {user.username} with email: {user.email}")
     # Verificar si el email ya existe
     db_user = crud_user.get_user_by_email(db, email=user.email)
     if db_user:

@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database.database import Base, engine
-from .routes import auth, products, tools, users
+from .routes import auth, users, tools, requests, chats, notifications
 
 # Crear las tablas de la base de datos
 Base.metadata.create_all(bind=engine)
@@ -28,9 +28,11 @@ app.add_middleware(
 
 # Incluir los routers de la aplicación
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-app.include_router(products.router, prefix="/api/products", tags=["products"])
-app.include_router(tools.router, prefix="/api/tools", tags=["tools"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
+app.include_router(tools.router, prefix="/api/tools", tags=["tools"])
+app.include_router(requests.router, prefix="/api/requests", tags=["requests"])
+app.include_router(chats.router, prefix="/api/chats", tags=["chats"])
+app.include_router(notifications.router, prefix="/api/notifications", tags=["notifications"])
 
 @app.get("/", tags=["health"])
 async def root():

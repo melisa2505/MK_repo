@@ -1,38 +1,8 @@
 """
-Archivo principal de la aplicación FastAPI para Mouse Kerramentas
+Punto de entrada para ejecutar la aplicación FastAPI para Mouse Kerramientas
 """
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-# Crear la instancia de la aplicación
-app = FastAPI(
-    title="MouseKerramientas API",
-    description="API para la aplicación de alquiler de herramientas MouseKerramientas",
-    version="0.1.0"
-)
-
-# Configurar CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # En producción, especificar los orígenes exactos
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.get("/")
-async def root():
-    """
-    Endpoint raíz para comprobar que la API está funcionando
-    """
-    return {"message": "Bienvenido a la API de MouseKerramientas"}
-
-@app.get("/health")
-async def health_check():
-    """
-    Endpoint para comprobar el estado de la API
-    """
-    return {"status": "ok"}
+# Importar la app correctamente configurada desde el paquete app
+from app.main import app
 
 # Punto de entrada para ejecutar la aplicación con uvicorn
 if __name__ == "__main__":

@@ -29,6 +29,7 @@ class Tool(Base):
     # category_id = Column(Integer, ForeignKey("categories.id"))  # Comentado temporalmente
     category = Column(String(50))  # Campo temporal para categoría
     daily_price = Column(Float)
+    warranty = Column(Float, default=0.0)  # Campo de garantía
     condition = Column(Enum(ToolCondition), default=ToolCondition.GOOD)
     is_available = Column(Boolean, default=True)
     image_url = Column(String(255), nullable=True)
@@ -42,3 +43,4 @@ class Tool(Base):
     class Config:
         """Configuración del modelo."""
         orm_mode = True
+
