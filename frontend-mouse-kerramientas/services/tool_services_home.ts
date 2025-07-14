@@ -111,7 +111,7 @@ const MOCK_TOOLS: Tool[] = [
     owner_id: 3
   },
   {
-    id: 6,
+    id: 15,
     name: "Soldadora Inverter",
     description: "Soldadora inverter para electrodos de hasta 3.25mm. Incluye careta y electrodos básicos.",
     brand: "Lincoln Electric",
@@ -187,7 +187,7 @@ export const toolService = {
           if (tool) {
             resolve(tool as ToolDetail);
           } else {
-            reject(new Error('Herramienta no encontrada'));
+            reject(new Error('Herramienta no encontrada, id buscado: ' + toolId));
           }
         }, 600);
       });

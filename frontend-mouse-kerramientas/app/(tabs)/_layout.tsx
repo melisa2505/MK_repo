@@ -24,7 +24,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: true,
+        headerShown: false,
         tabBarStyle: { display: 'none' }, // Ocultar la barra de navegación de pestañas
         headerStyle: { backgroundColor: Colors.light.background },
         headerShadowVisible: false,

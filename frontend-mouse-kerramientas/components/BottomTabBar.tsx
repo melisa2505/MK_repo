@@ -18,8 +18,8 @@ export default function BottomTabBar() {
 
   const tabs: TabItem[] = [
     { name: 'Home', route: '/', icon: 'home' },
-    { name: 'Browse', route: '/categories', icon: 'search' },
-    { name: 'Favoritos', route: '/favorites', icon: 'heart' },
+    { name: 'Solicitudes', route: '/categories', icon: 'file-invoice' }, // Cambiamos de 'search' a 'file-invoice'
+    { name: 'Chats', route: '/favorites', icon: 'comments' },
     { name: 'Carrito', route: '/cart', icon: 'shopping-cart' },
     { name: 'Perfil', route: '/profile', icon: 'user' },
   ];
@@ -31,6 +31,14 @@ export default function BottomTabBar() {
     // Para la ruta de perfil
     if (tab.route === '/profile') {
       return pathname.startsWith('/profile');
+    }
+    // Para la ruta de chats (que sigue siendo /favorites en el sistema de rutas)
+    if (tab.route === '/favorites') {
+      return pathname === '/favorites' || pathname.startsWith('/chats');
+    }
+    // Para la ruta de solicitudes (que sigue siendo /categories en el sistema de rutas)
+    if (tab.route === '/categories') {
+      return pathname === '/categories' || pathname.startsWith('/requests');
     }
     return pathname.startsWith(tab.route);
   };
