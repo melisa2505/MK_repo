@@ -5,6 +5,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from ..core.security import get_password_hash
 from ..database.database import get_db
 from ..models.user import User as UserModel
 from ..schemas.user import User, UserCreate, UserUpdate
@@ -53,17 +54,20 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
             detail="El nombre de usuario ya está registrado"
         )
 
-    # En una implementación real, hashearíamos la contraseña aquí
-    # hashed_password = get_password_hash(user.password)
+    # Usar el hash de la contraseña para seguridad
+    hashed_password = get_password_hash(user.password)
     
-    # Para este ejemplo, simplemente usamos la contraseña como está (¡NO HACER ESTO EN PRODUCCIÓN!)
+    # Crear el usuario con los datos proporcionados
     db_user = UserModel(
         email=user.email,
         username=user.username,
         full_name=user.full_name,
-        phone_number=user.phone_number,
-        hashed_password=user.password  # En producción: hashed_password
+        hashed_password=hashed_password
     )
+    
+    # Si hay un phone_number en la solicitud, añadirlo
+    if hasattr(user, 'phone_number'):
+        db_user.phone_number = user.phone_number
     
     db.add(db_user)
     db.commit()
@@ -85,9 +89,8 @@ def read_user_me():
         "email": "usuario@ejemplo.com",
         "username": "usuario_ejemplo",
         "full_name": "Usuario Ejemplo",
-        "phone_number": "+52 55 1234 5678",
         "is_active": True,
-        "is_admin": False,
+        "is_superuser": False,  # Cambiado de is_admin a is_superuser para coincidir con el esquema
         "created_at": "2025-01-01T00:00:00"
     }
 
@@ -128,7 +131,8 @@ def update_user(
         )
     
     # Actualiza solo los campos que no son None en el request
-    update_data = user_update.dict(exclude_unset=True)
+    # Usar model_dump en lugar de dict para compatibilidad con Pydantic v2
+    update_data = user_update.model_dump(exclude_unset=True)
     
     # Verificar si el email ya está en uso por otro usuario
     if "email" in update_data and update_data["email"] != db_user.email:
@@ -147,6 +151,10 @@ def update_user(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="El nombre de usuario ya está registrado"
             )
+    
+    # Manejar el hash de contraseña si se está actualizando la contraseña
+    if "password" in update_data:
+        update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
     
     for key, value in update_data.items():
         setattr(db_user, key, value)

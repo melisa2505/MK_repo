@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from ..crud import request as crud_request
+from ..crud import notification as crud_notification
+from ..crud import user as crud_user
 from ..database.database import get_db
 from ..dependencies import get_current_active_user
 from ..models.user import User
@@ -85,7 +87,17 @@ async def cancel_my_request(
             detail=f"Cannot cancel request in '{request.status}' status"
         )
     
-    return crud_request.cancel_request(db, request_id)
+    updated_request = crud_request.cancel_request(db, request_id)
+    
+    # Create notification for the tool owner
+    crud_notification.create_notification(
+        db=db,
+        user_id=request.owner_id,
+        notification_type="request_canceled",
+        content=f"La solicitud para tu herramienta ha sido cancelada por {current_user.username}"
+    )
+    
+    return updated_request
 
 
 @router.post("/mis-solicitudes/{request_id}/pagar", response_model=Request)
@@ -117,7 +129,17 @@ async def pay_request(
             detail=f"Cannot pay for request in '{request.status}' status"
         )
     
-    return crud_request.pay_request(db, request_id, yape_code)
+    updated_request = crud_request.pay_request(db, request_id, yape_code)
+    
+    # Create notification for the tool owner
+    crud_notification.create_notification(
+        db=db,
+        user_id=request.owner_id,
+        notification_type="request_paid",
+        content=f"{current_user.username} ha realizado el pago para la solicitud de tu herramienta"
+    )
+    
+    return updated_request
 
 
 @router.post("/mis-solicitudes/{request_id}/confirmar-recepcion", response_model=Request)
@@ -148,38 +170,17 @@ async def confirm_reception(
             detail=f"Cannot confirm reception for request in '{request.status}' status"
         )
     
-    return crud_request.confirm_delivery(db, request_id)
-
-
-@router.post("/mis-solicitudes/{request_id}/confirmar-devolucion", response_model=Request)
-async def confirm_return_by_consumer(
-    request_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    """
-    Confirm that the consumer has returned the tool.
-    """
-    request = crud_request.get_request(db, request_id)
-    if not request:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Request not found"
-        )
+    updated_request = crud_request.confirm_delivery(db, request_id)
     
-    if request.consumer_id != current_user.id and not current_user.is_superuser:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to confirm return for this request"
-        )
+    # Create notification for the tool owner
+    crud_notification.create_notification(
+        db=db,
+        user_id=request.owner_id,
+        notification_type="tool_received",
+        content=f"{current_user.username} ha confirmado la recepción de tu herramienta"
+    )
     
-    if request.status != "delivered":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot confirm return for request in '{request.status}' status"
-        )
-    
-    return crud_request.confirm_return(db, request_id)
+    return updated_request
 
 
 # "Sus solicitudes" (Others rent from me)
@@ -254,7 +255,17 @@ async def confirm_request(
             detail=f"Cannot confirm request in '{request.status}' status"
         )
     
-    return crud_request.update_request_status(db, request_id, "confirmed")
+    updated_request = crud_request.update_request_status(db, request_id, "confirmed")
+    
+    # Create notification for the consumer
+    crud_notification.create_notification(
+        db=db,
+        user_id=request.consumer_id,
+        notification_type="request_confirmed",
+        content=f"Tu solicitud de herramienta ha sido confirmada por {current_user.username}"
+    )
+    
+    return updated_request
 
 
 @router.post("/sus-solicitudes/{request_id}/rechazar", response_model=Request)
@@ -285,38 +296,17 @@ async def reject_request(
             detail=f"Cannot reject request in '{request.status}' status"
         )
     
-    return crud_request.reject_request(db, request_id)
-
-
-@router.post("/sus-solicitudes/{request_id}/confirmar-entrega", response_model=Request)
-async def confirm_delivery_by_owner(
-    request_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    """
-    Confirm that the owner has delivered the tool.
-    """
-    request = crud_request.get_request(db, request_id)
-    if not request:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Request not found"
-        )
+    updated_request = crud_request.reject_request(db, request_id)
     
-    if request.owner_id != current_user.id and not current_user.is_superuser:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to confirm delivery for this request"
-        )
+    # Create notification for the consumer
+    crud_notification.create_notification(
+        db=db,
+        user_id=request.consumer_id,
+        notification_type="request_rejected",
+        content=f"Tu solicitud de herramienta ha sido rechazada por {current_user.username}"
+    )
     
-    if request.status != "confirmed":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot confirm delivery for request in '{request.status}' status"
-        )
-    
-    return crud_request.confirm_delivery(db, request_id)
+    return updated_request
 
 
 @router.post("/sus-solicitudes/{request_id}/confirmar-devolucion", response_model=Request)
@@ -347,4 +337,14 @@ async def confirm_return_by_owner(
             detail=f"Cannot confirm return reception for request in '{request.status}' status"
         )
     
-    return crud_request.confirm_reception(db, request_id)
+    updated_request = crud_request.confirm_reception(db, request_id)
+    
+    # Create notification for the consumer
+    crud_notification.create_notification(
+        db=db,
+        user_id=request.consumer_id,
+        notification_type="return_confirmed",
+        content=f"{current_user.username} ha confirmado la recepción de la herramienta devuelta"
+    )
+    
+    return updated_request

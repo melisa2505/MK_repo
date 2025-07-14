@@ -67,7 +67,8 @@ def update_user(db: Session, user_id: int, user_update: UserUpdate) -> Optional[
     """
     db_user = get_user(db, user_id)
     if db_user:
-        update_data = user_update.dict(exclude_unset=True)
+        # Cambiado de dict() a model_dump() para Pydantic v2
+        update_data = user_update.model_dump(exclude_unset=True)
         if "password" in update_data:
             update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
         
