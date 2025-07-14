@@ -1,4 +1,3 @@
-import { Stack } from 'expo-router';
 import React from 'react';
 import { Platform, StatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -17,10 +16,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         edges={['right', 'left', 'top']} // Excluimos 'bottom' para manejar manualmente el espacio inferior
       >
         <StatusBar barStyle="dark-content" backgroundColor={Colors.light.background} />
-        <Stack.Screen options={{ 
-          headerStyle: { backgroundColor: Colors.light.background },
-          headerShadowVisible: false,
-        }} />
         <View style={styles.content}>
           {children}
         </View>

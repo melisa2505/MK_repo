@@ -20,20 +20,36 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Modo de desarrollo - Cambiar a false para usar autenticación real
+const DEV_MODE = false;
+
+// Usuario de prueba para desarrollo
+const TEST_USER: User = {
+  id: 1,
+  email: 'usuario@example.com',
+  username: 'usuario_test',
+  full_name: 'Usuario de Prueba',
+  is_active: true,
+  created_at: new Date().toISOString()
+};
+
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // En modo desarrollo, inicializar con el usuario de prueba
+  const [user, setUser] = useState<User | null>(DEV_MODE ? TEST_USER : null);
+  const [isLoading, setIsLoading] = useState(!DEV_MODE); // No mostrar carga en modo dev
   const [error, setError] = useState<string | null>(null);
 
   const isAuthenticated = !!user;
 
-  // Verificar sesión guardada al iniciar la app
+  // Verificar sesión guardada al iniciar la app (solo si no estamos en modo desarrollo)
   useEffect(() => {
-    checkStoredSession();
+    if (!DEV_MODE) {
+      checkStoredSession();
+    }
   }, []);
 
   const checkStoredSession = async () => {
@@ -51,6 +67,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const login = async (username: string, password: string) => {
+    // En modo desarrollo, simular un inicio de sesión exitoso
+    if (DEV_MODE) {
+      return new Promise<void>(resolve => {
+        setIsLoading(true);
+        setTimeout(() => {
+          setUser(TEST_USER);
+          setIsLoading(false);
+          resolve();
+        }, 800);
+      });
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -71,6 +99,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     password_confirm: string;
     full_name?: string;
   }) => {
+    // En modo desarrollo, simular un registro exitoso
+    if (DEV_MODE) {
+      return new Promise<void>(resolve => {
+        setIsLoading(true);
+        setTimeout(() => {
+          setUser({
+            ...TEST_USER,
+            email: userData.email,
+            username: userData.username,
+            full_name: userData.full_name || TEST_USER.full_name
+          });
+          setIsLoading(false);
+          resolve();
+        }, 1000);
+      });
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -86,6 +131,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = async () => {
+    // En modo desarrollo, simular un cierre de sesión
+    if (DEV_MODE) {
+      return new Promise<void>(resolve => {
+        setIsLoading(true);
+        setTimeout(() => {
+          setUser(null);
+          setIsLoading(false);
+          resolve();
+        }, 500);
+      });
+    }
+
     try {
       setIsLoading(true);
       await authService.logout();

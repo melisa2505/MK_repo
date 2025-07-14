@@ -25,44 +25,11 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: true,
-        tabBarActiveTintColor: Colors.light.primary,
-        tabBarInactiveTintColor: Colors.light.textSecondary,
+        tabBarStyle: { display: 'none' }, // Ocultar la barra de navegación de pestañas
         headerStyle: { backgroundColor: Colors.light.background },
         headerShadowVisible: false,
       }}
-      tabBar={() => null} // Ocultamos la barra de pestañas nativa y usamos nuestro BottomTabBar
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Inicio',
-        }}
-      />
-      <Tabs.Screen
-        name="categories"
-        options={{
-          title: 'Categorías',
-        }}
-      />
-      <Tabs.Screen
-        name="favorites"
-        options={{
-          title: 'Favoritos',
-        }}
-      />
-      <Tabs.Screen
-        name="cart"
-        options={{
-          title: 'Carrito',
-        }}
-      />
-      <Tabs.Screen
-        name="profile/[id]"
-        options={{
-          href: null,
-          headerShown: false,
-        }}
-      />
     </Tabs>
   );
 }
