@@ -8,9 +8,9 @@ from pydantic import BaseModel, Field
 
 class NotificationBase(BaseModel):
     """Base schema for notifications."""
-    user_id: int = Field(..., example=1)
-    type: str = Field(..., example="request_created")
-    content: str = Field(..., example="A new request has been made for your tool.")
+    user_id: int = Field(..., description="ID del usuario que recibirá la notificación", example=1)
+    type: str = Field(..., description="Tipo de notificación", example="request_created")
+    content: str = Field(..., description="Contenido de la notificación", example="Se ha realizado una nueva solicitud para tu herramienta.")
 
 
 class NotificationCreate(NotificationBase):
@@ -20,14 +20,14 @@ class NotificationCreate(NotificationBase):
 
 class NotificationUpdate(BaseModel):
     """Schema for updating a notification."""
-    read: bool = Field(..., example=True)
+    read: bool = Field(..., description="Estado de lectura de la notificación", example=True)
 
 
 class Notification(NotificationBase):
     """Schema for notification responses."""
-    id: int
-    read: bool
-    timestamp: datetime
+    id: int = Field(..., description="ID único de la notificación", example=1)
+    read: bool = Field(..., description="Si la notificación ha sido leída", example=False)
+    timestamp: datetime = Field(..., description="Fecha y hora de creación de la notificación")
 
     class Config:
         """Model configuration."""

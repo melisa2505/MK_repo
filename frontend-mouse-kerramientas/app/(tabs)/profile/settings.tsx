@@ -1,9 +1,44 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AppLayout from '../../../components/AppLayout';
+import { useAuth } from '../../../context/AuthContext';
+import { authService } from '../../../services/api';
 
 const Settings = () => {
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Cerrar Sesión',
+      '¿Estás seguro de que quieres cerrar sesión?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Cerrar Sesión',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Usar el servicio de logout del authService
+              await authService.logout();
+              // También llamar al logout del contexto para actualizar el estado
+              await logout();
+              // Redirigir al login
+              router.replace('/(auth)/login');
+            } catch (error) {
+              console.error('Error al cerrar sesión:', error);
+              Alert.alert('Error', 'No se pudo cerrar la sesión. Intenta nuevamente.');
+            }
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <AppLayout>
     <View style={styles.container}>
@@ -31,7 +66,7 @@ const Settings = () => {
         <Ionicons name="chevron-forward" size={24} color="#666" />
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.menuItem}>
+      <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
         <View style={styles.menuItemContent}>
           <Ionicons name="log-out-outline" size={24} color="#ff4444" />
           <Text style={[styles.menuItemText, styles.dangerText]}>Cerrar Sesión</Text>

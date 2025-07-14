@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AppLayout from '../../components/AppLayout';
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../../context/AuthContext';
@@ -19,42 +20,52 @@ export default function ChatsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchChats = async () => {
-      if (!user) {
-        setError('Necesitas iniciar sesión para ver tus chats');
-        setLoading(false);
-        return;
-      }
+  // Detección de pantalla pequeña
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+  const isSmallScreen = screenHeight < 700 || screenWidth < 350;
 
-      try {
-        setLoading(true);
-        // Obtener chats del usuario
-        const userChats = await chatService.getUserChats(user.id);
-        
-        // Para cada chat, obtenemos información de la herramienta
-        const chatsWithInfo = await Promise.all(
-          userChats.map(async (chat) => {
-            try {
-              const toolInfo = await toolService.getToolById(chat.tool_id);
-              return { ...chat, toolInfo };
-            } catch (err) {
-              return chat; // Si falla, devolvemos el chat sin info adicional
-            }
-          })
-        );
-        
-        setChats(chatsWithInfo);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error al cargar chats:', err);
-        setError('No se pudieron cargar los chats. Intente nuevamente.');
-        setLoading(false);
-      }
-    };
+  // Cargar chats cada vez que se enfoca la pantalla
+  useFocusEffect(
+    useCallback(() => {
+      const fetchChats = async () => {
+        if (!user) {
+          setError('Necesitas iniciar sesión para ver tus chats');
+          setLoading(false);
+          return;
+        }
 
-    fetchChats();
-  }, [user]);
+        try {
+          setLoading(true);
+          setError(null);
+          console.log("Cargando chats del usuario...");
+          
+          // Obtener chats del usuario
+          const userChats = await chatService.getUserChats(user.id);
+          
+          // Para cada chat, obtenemos información de la herramienta
+          const chatsWithInfo = await Promise.all(
+            userChats.map(async (chat) => {
+              try {
+                const toolInfo = await toolService.getToolById(chat.tool_id);
+                return { ...chat, toolInfo };
+              } catch (err) {
+                return chat; // Si falla, devolvemos el chat sin info adicional
+              }
+            })
+          );
+          
+          setChats(chatsWithInfo);
+          setLoading(false);
+        } catch (err) {
+          console.error('Error al cargar chats:', err);
+          setError('No se pudieron cargar los chats. Intente nuevamente.');
+          setLoading(false);
+        }
+      };
+
+      fetchChats();
+    }, [user])
+  );
 
   const renderChatItem = ({ item }: { item: ChatListItem }) => {
     // Determinar si el usuario actual es el propietario o el consumidor
@@ -63,14 +74,20 @@ export default function ChatsScreen() {
 
     return (
       <TouchableOpacity 
-        style={styles.chatCard}
+        style={[
+          styles.chatCard,
+          isSmallScreen && styles.chatCardSmall
+        ]}
         onPress={() => router.push({
           pathname: '/chats/[id]',
           params: { id: item.id }
         })}
       >
         {/* Imagen de la herramienta o placeholder */}
-        <View style={styles.imageContainer}>
+        <View style={[
+          styles.imageContainer,
+          isSmallScreen && styles.imageContainerSmall
+        ]}>
           {item.toolInfo?.image_url ? (
             <Image 
               source={{ uri: item.toolInfo.image_url }} 
@@ -79,31 +96,43 @@ export default function ChatsScreen() {
             />
           ) : (
             <View style={styles.imagePlaceholder}>
-              <MaterialCommunityIcons name="tools" size={24} color={Colors.light.textSecondary} />
+              <MaterialCommunityIcons 
+                name="tools" 
+                size={isSmallScreen ? 20 : 24} 
+                color={Colors.light.textSecondary} 
+              />
             </View>
           )}
         </View>
         
         <View style={styles.chatInfo}>
           {/* Nombre de la herramienta si está disponible */}
-          <Text style={styles.chatTitle}>
+          <Text style={[
+            styles.chatTitle,
+            isSmallScreen && styles.chatTitleSmall
+          ]} numberOfLines={isSmallScreen ? 1 : 2}>
             {item.toolInfo?.name || `Chat #${item.id}`}
           </Text>
           
           {/* Mostrar con quién es el chat */}
-          <Text style={styles.chatSubtitle}>
+          <Text style={[
+            styles.chatSubtitle,
+            isSmallScreen && styles.chatSubtitleSmall
+          ]} numberOfLines={1}>
             {isOwner ? 'Chat con cliente' : 'Chat con proveedor'} #{counterpartId}
           </Text>
           
-          {/* Fecha de creación del chat */}
-          <Text style={styles.chatDate}>
-            Iniciado el {new Date(item.created_at).toLocaleDateString('es-ES')}
-          </Text>
+          {/* Fecha de creación del chat - Ocultar en pantallas muy pequeñas */}
+          {!isSmallScreen && (
+            <Text style={styles.chatDate}>
+              Iniciado el {new Date(item.created_at).toLocaleDateString('es-ES')}
+            </Text>
+          )}
         </View>
         
         <MaterialCommunityIcons 
           name="chevron-right" 
-          size={24} 
+          size={isSmallScreen ? 20 : 24} 
           color={Colors.light.textSecondary}
         />
       </TouchableOpacity>
@@ -122,8 +151,14 @@ export default function ChatsScreen() {
 
   return (
     <AppLayout>
-      <View style={styles.container}>
-        <Text style={styles.title}>Mis Chats</Text>
+      <View style={[
+        styles.container,
+        isSmallScreen && styles.containerSmall
+      ]}>
+        <Text style={[
+          styles.title,
+          isSmallScreen && styles.titleSmall
+        ]}>Mis Chats</Text>
         
         {error ? (
           <View style={styles.errorContainer}>
@@ -145,18 +180,30 @@ export default function ChatsScreen() {
             contentContainerStyle={styles.chatsList}
           />
         ) : (
-          <View style={styles.emptyContainer}>
+          <View style={[
+            styles.emptyContainer,
+            isSmallScreen && styles.emptyContainerSmall
+          ]}>
             <MaterialCommunityIcons 
               name="chat-remove-outline" 
-              size={80} 
+              size={isSmallScreen ? 60 : 80} 
               color={Colors.light.textSecondary} 
             />
-            <Text style={styles.emptyText}>No tienes chats activos</Text>
+            <Text style={[
+              styles.emptyText,
+              isSmallScreen && styles.emptyTextSmall
+            ]}>No tienes chats activos</Text>
             <TouchableOpacity
-              style={styles.browseButton}
+              style={[
+                styles.browseButton,
+                isSmallScreen && styles.browseButtonSmall
+              ]}
               onPress={() => router.push('/')}
             >
-              <Text style={styles.browseButtonText}>Explorar herramientas</Text>
+              <Text style={[
+                styles.browseButtonText,
+                isSmallScreen && styles.browseButtonTextSmall
+              ]}>Explorar herramientas</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -171,11 +218,18 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: Colors.light.background,
   },
+  containerSmall: {
+    padding: 12, // Reducir padding en pantallas pequeñas
+  },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 20,
     color: Colors.light.text,
+  },
+  titleSmall: {
+    fontSize: 20,
+    marginBottom: 16,
   },
   loadingContainer: {
     flex: 1,
@@ -195,12 +249,23 @@ const styles = StyleSheet.create({
     borderColor: Colors.light.border,
     alignItems: 'center',
   },
+  chatCardSmall: {
+    padding: 12,
+    marginBottom: 8,
+    borderRadius: 8,
+  },
   imageContainer: {
     width: 50,
     height: 50,
     borderRadius: 25,
     overflow: 'hidden',
     marginRight: 12,
+  },
+  imageContainerSmall: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
   },
   toolImage: {
     width: '100%',
@@ -223,10 +288,18 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     marginBottom: 4,
   },
+  chatTitleSmall: {
+    fontSize: 15,
+    marginBottom: 2,
+  },
   chatSubtitle: {
     fontSize: 14,
     color: Colors.light.textSecondary,
     marginBottom: 2,
+  },
+  chatSubtitleSmall: {
+    fontSize: 13,
+    marginBottom: 1,
   },
   chatDate: {
     fontSize: 12,
@@ -238,10 +311,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 50,
   },
+  emptyContainerSmall: {
+    paddingBottom: 30,
+  },
   emptyText: {
     fontSize: 16,
     color: Colors.light.textSecondary,
     marginVertical: 20,
+  },
+  emptyTextSmall: {
+    fontSize: 14,
+    marginVertical: 15,
+    textAlign: 'center',
   },
   browseButton: {
     backgroundColor: Colors.light.primary,
@@ -249,9 +330,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 8,
   },
+  browseButtonSmall: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+  },
   browseButtonText: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  browseButtonTextSmall: {
+    fontSize: 14,
   },
   errorContainer: {
     flex: 1,

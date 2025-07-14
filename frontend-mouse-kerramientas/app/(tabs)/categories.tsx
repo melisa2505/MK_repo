@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AppLayout from '../../components/AppLayout';
 import { Colors } from '../../constants/Colors';
@@ -15,33 +16,37 @@ export default function RequestsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadRequests = async () => {
-      if (!user) {
-        setError('Necesitas iniciar sesión para ver tus solicitudes');
-        setLoading(false);
-        return;
-      }
+  // Cargar solicitudes cada vez que se enfoca la pantalla
+  useFocusEffect(
+    useCallback(() => {
+      const loadRequests = async () => {
+        if (!user) {
+          setError('Necesitas iniciar sesión para ver tus solicitudes');
+          setLoading(false);
+          return;
+        }
 
-      try {
-        setLoading(true);
-        const [myRequestsData, ownerRequestsData] = await Promise.all([
-          requestService.getMyRequests(user.id),
-          requestService.getOwnerRequests(user.id)
-        ]);
+        try {
+          setLoading(true);
+          setError(null);
+          const [myRequestsData, ownerRequestsData] = await Promise.all([
+            requestService.getMyRequests(user.id),
+            requestService.getOwnerRequests(user.id)
+          ]);
 
-        setMyRequests(myRequestsData);
-        setOwnerRequests(ownerRequestsData);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error al cargar solicitudes:', err);
-        setError('No se pudieron cargar las solicitudes. Intente nuevamente.');
-        setLoading(false);
-      }
-    };
+          setMyRequests(myRequestsData);
+          setOwnerRequests(ownerRequestsData);
+          setLoading(false);
+        } catch (err) {
+          console.error('Error al cargar solicitudes:', err);
+          setError('No se pudieron cargar las solicitudes. Intente nuevamente.');
+          setLoading(false);
+        }
+      };
 
-    loadRequests();
-  }, [user]);
+      loadRequests();
+    }, [user])
+  );
 
   const renderRequestItem = ({ item }: { item: Request }) => {
     const statusColor = requestService.getStatusColor(item.status);
