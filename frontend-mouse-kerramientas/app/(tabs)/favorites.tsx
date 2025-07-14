@@ -1,50 +1,162 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AppLayout from '../../components/AppLayout';
 import { Colors } from '../../constants/Colors';
+import { useAuth } from '../../context/AuthContext';
+import { Chat, chatService } from '../../services/chat_services';
+import { Tool, toolService } from '../../services/tool_services_home';
 
-const mockFavorites = [
-  { id: '1', name: 'Mouse Gamer RGB', price: '$49.99' },
-  { id: '2', name: 'Teclado Mecánico', price: '$79.99' },
-];
+// Interfaz para los chats con información adicional de la herramienta
+interface ChatListItem extends Chat {
+  toolInfo?: Tool;
+}
 
-export default function FavoritesScreen() {
+export default function ChatsScreen() {
+  const { user } = useAuth();
+  const [chats, setChats] = useState<ChatListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchChats = async () => {
+      if (!user) {
+        setError('Necesitas iniciar sesión para ver tus chats');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        // Obtener chats del usuario
+        const userChats = await chatService.getUserChats(user.id);
+        
+        // Para cada chat, obtenemos información de la herramienta
+        const chatsWithInfo = await Promise.all(
+          userChats.map(async (chat) => {
+            try {
+              const toolInfo = await toolService.getToolById(chat.tool_id);
+              return { ...chat, toolInfo };
+            } catch (err) {
+              return chat; // Si falla, devolvemos el chat sin info adicional
+            }
+          })
+        );
+        
+        setChats(chatsWithInfo);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error al cargar chats:', err);
+        setError('No se pudieron cargar los chats. Intente nuevamente.');
+        setLoading(false);
+      }
+    };
+
+    fetchChats();
+  }, [user]);
+
+  const renderChatItem = ({ item }: { item: ChatListItem }) => {
+    // Determinar si el usuario actual es el propietario o el consumidor
+    const isOwner = user?.id === item.owner_id;
+    const counterpartId = isOwner ? item.consumer_id : item.owner_id;
+
+    return (
+      <TouchableOpacity 
+        style={styles.chatCard}
+        onPress={() => router.push({
+          pathname: '/chats/[id]',
+          params: { id: item.id }
+        })}
+      >
+        {/* Imagen de la herramienta o placeholder */}
+        <View style={styles.imageContainer}>
+          {item.toolInfo?.image_url ? (
+            <Image 
+              source={{ uri: item.toolInfo.image_url }} 
+              style={styles.toolImage} 
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <MaterialCommunityIcons name="tools" size={24} color={Colors.light.textSecondary} />
+            </View>
+          )}
+        </View>
+        
+        <View style={styles.chatInfo}>
+          {/* Nombre de la herramienta si está disponible */}
+          <Text style={styles.chatTitle}>
+            {item.toolInfo?.name || `Chat #${item.id}`}
+          </Text>
+          
+          {/* Mostrar con quién es el chat */}
+          <Text style={styles.chatSubtitle}>
+            {isOwner ? 'Chat con cliente' : 'Chat con proveedor'} #{counterpartId}
+          </Text>
+          
+          {/* Fecha de creación del chat */}
+          <Text style={styles.chatDate}>
+            Iniciado el {new Date(item.created_at).toLocaleDateString('es-ES')}
+          </Text>
+        </View>
+        
+        <MaterialCommunityIcons 
+          name="chevron-right" 
+          size={24} 
+          color={Colors.light.textSecondary}
+        />
+      </TouchableOpacity>
+    );
+  };
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.light.primary} />
+        </View>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <View style={styles.container}>
-        <Text style={styles.title}>Mis Favoritos</Text>
+        <Text style={styles.title}>Mis Chats</Text>
         
-        {mockFavorites.length > 0 ? (
-          <FlatList
-            data={mockFavorites}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity 
-                style={styles.productCard}
-                onPress={() => router.push('/product-detail')}
+        {error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+            {!user && (
+              <TouchableOpacity
+                style={styles.loginButton}
+                onPress={() => router.push('/login')}
               >
-                <View style={styles.productImagePlaceholder}>
-                  <Text>Imagen</Text>
-                </View>
-                <View style={styles.productInfo}>
-                  <Text style={styles.productName}>{item.name}</Text>
-                  <Text style={styles.productPrice}>{item.price}</Text>
-                </View>
-                <TouchableOpacity style={styles.favoriteButton}>
-                  <Text style={styles.favoriteIcon}>❤️</Text>
-                </TouchableOpacity>
+                <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
               </TouchableOpacity>
             )}
+          </View>
+        ) : chats.length > 0 ? (
+          <FlatList
+            data={chats}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderChatItem}
+            contentContainerStyle={styles.chatsList}
           />
         ) : (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No tienes productos favoritos</Text>
+            <MaterialCommunityIcons 
+              name="chat-remove-outline" 
+              size={80} 
+              color={Colors.light.textSecondary} 
+            />
+            <Text style={styles.emptyText}>No tienes chats activos</Text>
             <TouchableOpacity
               style={styles.browseButton}
-              onPress={() => router.push('/categories')}
+              onPress={() => router.push('/')}
             >
-              <Text style={styles.browseButtonText}>Explorar productos</Text>
+              <Text style={styles.browseButtonText}>Explorar herramientas</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -65,44 +177,60 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: Colors.light.text,
   },
-  productCard: {
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chatsList: {
+    paddingBottom: 20,
+  },
+  chatCard: {
     flexDirection: 'row',
     backgroundColor: Colors.light.background,
-    borderRadius: 8,
-    marginBottom: 16,
-    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+    padding: 16,
     borderWidth: 1,
     borderColor: Colors.light.border,
     alignItems: 'center',
   },
-  productImagePlaceholder: {
-    width: 80,
-    height: 80,
+  imageContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    overflow: 'hidden',
+    marginRight: 12,
+  },
+  toolImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
     backgroundColor: Colors.light.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 25,
   },
-  productInfo: {
+  chatInfo: {
     flex: 1,
-    marginLeft: 12,
   },
-  productName: {
+  chatTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     color: Colors.light.text,
     marginBottom: 4,
   },
-  productPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.light.primary,
+  chatSubtitle: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+    marginBottom: 2,
   },
-  favoriteButton: {
-    padding: 8,
-  },
-  favoriteIcon: {
-    fontSize: 24,
+  chatDate: {
+    fontSize: 12,
+    color: Colors.light.textSecondary,
   },
   emptyContainer: {
     flex: 1,
@@ -113,7 +241,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: Colors.light.textSecondary,
-    marginBottom: 20,
+    marginVertical: 20,
   },
   browseButton: {
     backgroundColor: Colors.light.primary,
@@ -124,5 +252,28 @@ const styles = StyleSheet.create({
   browseButtonText: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 50,
+  },
+  errorText: {
+    fontSize: 16,
+    color: 'red',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  loginButton: {
+    backgroundColor: Colors.light.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  loginButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

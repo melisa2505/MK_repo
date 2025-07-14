@@ -1,48 +1,133 @@
 import { router } from 'expo-router';
-import React from 'react';
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import AppLayout from '../../components/AppLayout';
 import { Colors } from '../../constants/Colors';
-
-const mockProducts = [
-  { id: '1', name: 'Mouse Gamer RGB', price: '$49.99' },
-  { id: '2', name: 'Teclado Mecánico', price: '$79.99' },
-  { id: '3', name: 'Mousepad XL', price: '$19.99' },
-];
+import { useAuth } from '../../context/AuthContext';
+import { Tool, filterToolsBySearchTerm, toolService } from '../../services/tool_services_home';
 
 export default function HomeScreen() {
+  const { user } = useAuth();
+  const [tools, setTools] = useState<Tool[]>([]);
+  const [filteredTools, setFilteredTools] = useState<Tool[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Cargar herramientas al iniciar
+  useEffect(() => {
+    const fetchTools = async () => {
+      try {
+        setLoading(true);
+        const toolsData = await toolService.getAllTools();
+        setTools(toolsData);
+        setFilteredTools(toolsData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error al cargar herramientas:', error);
+        setError('No se pudieron cargar las herramientas. Intente nuevamente.');
+        setLoading(false);
+      }
+    };
+
+    fetchTools();
+  }, []);
+
+  // Manejar búsqueda
+  const handleSearch = (text: string) => {
+    setSearchTerm(text);
+    setFilteredTools(filterToolsBySearchTerm(tools, text));
+  };
+
+  // Navegar al detalle del producto
+  const goToProductDetail = (toolId: number) => {
+    router.push({
+      pathname: '/product-detail',
+      params: { id: toolId }
+    });
+  };
+
   return (
     <AppLayout>
       <View style={styles.container}>
-        <Text style={styles.welcomeText}>¡Bienvenido a Mouse Kerrementas!</Text>
+        <Text style={styles.welcomeText}>¡Bienvenido a Mouse Kerramentas!</Text>
         
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Buscar productos..."
+            placeholder="Buscar herramientas..."
+            value={searchTerm}
+            onChangeText={handleSearch}
           />
         </View>
         
-        <Text style={styles.sectionTitle}>Productos Populares</Text>
+        <Text style={styles.sectionTitle}>Herramientas Disponibles</Text>
         
-        <FlatList
-          data={mockProducts}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.light.primary} />
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity 
-              style={styles.productCard}
-              onPress={() => router.push('/product-detail')}
+              style={styles.retryButton}
+              onPress={() => {
+                setLoading(true);
+                setError(null);
+                toolService.getAllTools()
+                  .then(data => {
+                    setTools(data);
+                    setFilteredTools(data);
+                    setLoading(false);
+                  })
+                  .catch(err => {
+                    setError('No se pudieron cargar las herramientas. Intente nuevamente.');
+                    setLoading(false);
+                  });
+              }}
             >
-              <View style={styles.productImagePlaceholder}>
-                <Text>Imagen</Text>
-              </View>
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{item.name}</Text>
-                <Text style={styles.productPrice}>{item.price}</Text>
-              </View>
+              <Text style={styles.retryButtonText}>Reintentar</Text>
             </TouchableOpacity>
-          )}
-        />
+          </View>
+        ) : filteredTools.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              {searchTerm ? 'No se encontraron herramientas que coincidan con su búsqueda.' : 'No hay herramientas disponibles.'}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredTools}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity 
+                style={styles.toolCard}
+                onPress={() => goToProductDetail(item.id)}
+              >
+                <View style={styles.toolImageContainer}>
+                  {item.image_url ? (
+                    <Image 
+                      source={{ uri: item.image_url }} 
+                      style={styles.toolImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.toolImagePlaceholder}>
+                      <Text style={styles.toolImagePlaceholderText}>Sin imagen</Text>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.toolInfo}>
+                  <Text style={styles.toolName}>{item.name}</Text>
+                  <Text style={styles.toolBrand}>{item.brand} {item.model}</Text>
+                  <Text style={styles.toolPrice}>S/. {item.daily_price.toFixed(2)} / día</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
       </View>
     </AppLayout>
   );
@@ -68,6 +153,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
   },
   sectionTitle: {
     fontSize: 18,
@@ -75,37 +165,98 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: Colors.light.text,
   },
-  productCard: {
+  toolCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.light.background,
-    borderRadius: 8,
+    backgroundColor: 'white',
+    borderRadius: 12,
     marginBottom: 16,
     padding: 12,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  productImagePlaceholder: {
-    width: 80,
-    height: 80,
+  toolImageContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  toolImage: {
+    width: '100%',
+    height: '100%',
+  },
+  toolImagePlaceholder: {
+    width: '100%',
+    height: '100%',
     backgroundColor: Colors.light.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 8,
   },
-  productInfo: {
+  toolImagePlaceholderText: {
+    fontSize: 12,
+    color: Colors.light.textSecondary,
+    textAlign: 'center',
+  },
+  toolInfo: {
     marginLeft: 12,
     flex: 1,
     justifyContent: 'center',
   },
-  productName: {
+  toolName: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     marginBottom: 4,
     color: Colors.light.text,
   },
-  productPrice: {
-    fontSize: 16,
+  toolBrand: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+    marginBottom: 8,
+  },
+  toolPrice: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: Colors.light.primary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: 'red',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: Colors.light.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: Colors.light.textSecondary,
+    textAlign: 'center',
   },
 });

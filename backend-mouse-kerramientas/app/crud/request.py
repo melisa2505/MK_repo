@@ -103,7 +103,7 @@ def pay_request(db: Session, request_id: int, yape_code: str) -> Optional[Reques
     db_request = get_request(db, request_id)
     if db_request:
         db_request.yape_approval_code = yape_code
-        db_request.status = "confirmed"  # Update status to confirmed after payment
+        db_request.status = "paid"
         db.commit()
         db.refresh(db_request)
     return db_request
