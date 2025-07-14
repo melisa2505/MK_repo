@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database.database import Base, engine
-from .routes import auth, users, tools, requests, chats, notifications
+from .routes import auth, users, tools, requests, chats, notifications, categories
 
 # Crear las tablas de la base de datos
 Base.metadata.create_all(bind=engine)
@@ -33,6 +33,7 @@ app.include_router(tools.router, prefix="/api/tools", tags=["tools"])
 app.include_router(requests.router, prefix="/api/requests", tags=["requests"])
 app.include_router(chats.router, prefix="/api/chats", tags=["chats"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["notifications"])
+app.include_router(categories.router, prefix="/api/categories", tags=["categories"])
 
 @app.get("/", tags=["health"])
 async def root():

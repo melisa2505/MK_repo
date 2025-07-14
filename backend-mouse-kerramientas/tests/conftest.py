@@ -29,7 +29,7 @@ def override_get_db():
 
 
 @pytest.fixture(scope="function")
-def test_db():
+def db():
     """Fixture que crea una base de datos limpia para cada test"""
     # Crear todas las tablas
     Base.metadata.create_all(bind=engine)
@@ -47,7 +47,7 @@ def test_db():
 
 
 @pytest.fixture(scope="function")
-def client(test_db):
+def client(db):
     """Fixture del cliente de testing"""
     with TestClient(app) as test_client:
         yield test_client

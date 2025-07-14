@@ -18,7 +18,7 @@ def create_tool(db: Session, tool_data: ToolCreate, owner_id: int) -> Tool:
         description=tool_data.description,
         brand=tool_data.brand,
         model=tool_data.model,
-        category=tool_data.category_id,  # This will be updated when category model is implemented
+        category_id=tool_data.category_id,  # Changed from category to category_id
         daily_price=tool_data.daily_price,
         warranty=tool_data.warranty,
         condition=tool_data.condition,

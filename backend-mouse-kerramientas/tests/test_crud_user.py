@@ -19,7 +19,7 @@ from app.schemas.user import UserCreate, UserUpdate
 class TestUserCRUD:
     """Tests para operaciones CRUD de usuarios"""
 
-    def test_create_user(self, test_db):
+    def test_create_user(self, db):
         """Test para crear usuario"""
         user_data = UserCreate(
             email="create@example.com",
@@ -29,7 +29,7 @@ class TestUserCRUD:
             full_name="Create User"
         )
         
-        user = create_user(test_db, user_data)
+        user = create_user(db, user_data)
         
         assert user.email == "create@example.com"
         assert user.username == "createuser"
@@ -38,7 +38,7 @@ class TestUserCRUD:
         assert user.id is not None
         assert verify_password("testpassword123", user.hashed_password)
 
-    def test_get_user_by_email(self, test_db):
+    def test_get_user_by_email(self, db):
         """Test para obtener usuario por email"""
         # Crear usuario
         user_data = UserCreate(
@@ -47,16 +47,16 @@ class TestUserCRUD:
             password="testpassword123",
             password_confirm="testpassword123"
         )
-        created_user = create_user(test_db, user_data)
+        created_user = create_user(db, user_data)
         
         # Buscar por email
-        found_user = get_user_by_email(test_db, "email@example.com")
+        found_user = get_user_by_email(db, "email@example.com")
         
         assert found_user is not None
         assert found_user.id == created_user.id
         assert found_user.email == "email@example.com"
 
-    def test_get_user_by_username(self, test_db):
+    def test_get_user_by_username(self, db):
         """Test para obtener usuario por username"""
         # Crear usuario
         user_data = UserCreate(
@@ -65,16 +65,16 @@ class TestUserCRUD:
             password="testpassword123",
             password_confirm="testpassword123"
         )
-        created_user = create_user(test_db, user_data)
+        created_user = create_user(db, user_data)
         
         # Buscar por username
-        found_user = get_user_by_username(test_db, "usernameuser")
+        found_user = get_user_by_username(db, "usernameuser")
         
         assert found_user is not None
         assert found_user.id == created_user.id
         assert found_user.username == "usernameuser"
 
-    def test_authenticate_user_success(self, test_db):
+    def test_authenticate_user_success(self, db):
         """Test para autenticación exitosa"""
         # Crear usuario
         user_data = UserCreate(
@@ -83,15 +83,15 @@ class TestUserCRUD:
             password="testpassword123",
             password_confirm="testpassword123"
         )
-        create_user(test_db, user_data)
+        create_user(db, user_data)
         
         # Autenticar
-        authenticated_user = authenticate_user(test_db, "authuser", "testpassword123")
+        authenticated_user = authenticate_user(db, "authuser", "testpassword123")
         
         assert authenticated_user is not None
         assert authenticated_user.username == "authuser"
 
-    def test_authenticate_user_wrong_password(self, test_db):
+    def test_authenticate_user_wrong_password(self, db):
         """Test para autenticación con contraseña incorrecta"""
         # Crear usuario
         user_data = UserCreate(
@@ -100,16 +100,16 @@ class TestUserCRUD:
             password="testpassword123",
             password_confirm="testpassword123"
         )
-        create_user(test_db, user_data)
+        create_user(db, user_data)
         
         # Intentar autenticar con contraseña incorrecta
-        authenticated_user = authenticate_user(test_db, "wrongpassuser", "wrongpassword")
+        authenticated_user = authenticate_user(db, "wrongpassuser", "wrongpassword")
         
         assert authenticated_user is None
 
-    def test_authenticate_user_nonexistent(self, test_db):
+    def test_authenticate_user_nonexistent(self, db):
         """Test para autenticación de usuario inexistente"""
         # Intentar autenticar usuario que no existe
-        authenticated_user = authenticate_user(test_db, "nonexistent", "password")
+        authenticated_user = authenticate_user(db, "nonexistent", "password")
         
         assert authenticated_user is None

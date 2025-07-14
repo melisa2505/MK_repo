@@ -2,7 +2,7 @@
 Modelo para las herramientas en la base de datos.
 """
 import enum
-from sqlalchemy import Boolean, Column, Enum, Float, Integer, String, Text
+from sqlalchemy import Boolean, Column, Enum, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import Date
 from ..database.database import Base
@@ -27,13 +27,13 @@ class Tool(Base):
     brand = Column(String(50))
     model = Column(String(50))
     # category_id = Column(Integer, ForeignKey("categories.id"))  # Comentado temporalmente
-    category = Column(String(50))  # Campo temporal para categoría
+    category_id = Column(Integer)  # Campo temporal para categoría
     daily_price = Column(Float)
     warranty = Column(Float, default=0.0)  # Campo de garantía
     condition = Column(Enum(ToolCondition), default=ToolCondition.GOOD)
     is_available = Column(Boolean, default=True)
     image_url = Column(String(255), nullable=True)
-    # owner_id = Column(Integer, ForeignKey("users.id"))  # Comentado temporalmente
+    owner_id = Column(Integer, ForeignKey("users.id"))  # Relación con el usuario propietario
     
     # Relaciones comentadas temporalmente
     # owner = relationship("User", back_populates="tools")
