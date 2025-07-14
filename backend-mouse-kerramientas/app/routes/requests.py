@@ -329,7 +329,7 @@ async def confirm_return_by_owner(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot confirm return reception for request in '{request.status}' status"
-        )z
+        )
     
     updated_request = crud_request.confirm_reception(db, request_id)
     
