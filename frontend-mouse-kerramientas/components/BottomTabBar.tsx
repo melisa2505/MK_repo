@@ -20,7 +20,7 @@ export default function BottomTabBar() {
     { name: 'Home', route: '/', icon: 'home' },
     { name: 'Solicitudes', route: '/categories', icon: 'file-invoice' }, // Cambiamos de 'search' a 'file-invoice'
     { name: 'Chats', route: '/favorites', icon: 'comments' },
-    { name: 'Carrito', route: '/cart', icon: 'shopping-cart' },
+    { name: 'Notificaciones', route: '/cart', icon: 'bell' }, // Cambiamos de 'Carrito' a 'Notificaciones' y de 'shopping-cart' a 'bell'
     { name: 'Perfil', route: '/profile', icon: 'user' },
   ];
 

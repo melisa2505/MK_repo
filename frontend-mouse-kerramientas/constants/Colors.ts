@@ -15,6 +15,7 @@ export const Colors = {
     inputBg: '#F9F9F9',
     placeholderText: '#AAAAAA',
     forgotPasswordText: '#888888',
+    error: '#FF0000', // Rojo para errores
   },
   dark: {
     primary: '#E41C23', // Mantenemos el mismo rojo para modo oscuro
@@ -28,5 +29,6 @@ export const Colors = {
     inputBg: '#2C2C2C',
     placeholderText: '#777777',
     forgotPasswordText: '#999999',
+    error: '#FF0000', // Rojo para errores
   }
 };
