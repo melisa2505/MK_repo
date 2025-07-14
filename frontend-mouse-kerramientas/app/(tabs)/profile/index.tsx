@@ -8,11 +8,11 @@ export default function Profile() {
 
   useFocusEffect(
     useCallback(() => {
-      console.log("Entras a /profile");
-      if (user) {
+      console.log("Navegando al perfil del usuario");
+      if (user?.id) {
         router.push(`/(tabs)/profile/${user.id}`);
       }
-    }, [user])
+    }, [user?.id])
   );
 
   return null;
