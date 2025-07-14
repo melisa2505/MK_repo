@@ -1,264 +1,230 @@
-import { useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
-import { FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import AppLayout from "../../../components/AppLayout";
-//import { useAuth } from "../../hooks/useAuth"; // tu hook de autenticación
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import AppLayout from '../../../components/AppLayout';
+import { useAuth } from '../../../context/AuthContext';
+import { Tool, toolsService } from '../../../services/api';
 
-// Simulamos tipos de datos
-interface ToolCardProps {
-  id: string;
-  name: string;
-  imageUri: string;
-}
+// Tool Card Component
+const ToolCard = ({ tool }: { tool: Tool }) => {
+  return (
+    <TouchableOpacity 
+      style={styles.toolCard}
+      onPress={() => router.push(`/(tabs)/tool/${tool.id}` as any)}
+    >
+      <View style={styles.toolImagePlaceholder}>
+        {tool.image_url ? (
+          <Ionicons name="image" size={40} color="#666" />
+        ) : (
+          <Ionicons name="construct" size={40} color="#666" />
+        )}
+      </View>
+      <View style={styles.toolInfo}>
+        <Text style={styles.toolName}>{tool.name}</Text>
+        <Text style={styles.toolPrice}>${tool.price}</Text>
+        <Text style={styles.toolDescription} numberOfLines={2}>
+          {tool.description}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
-interface Review {
-  id: string;
-  comment: string;
-  author: string;
-}
+export default function ProfileScreen() {
+  const { id } = useLocalSearchParams();
+  const { user } = useAuth();
+  const [profileUser, setProfileUser] = useState<any>(null);
+  const [tools, setTools] = useState<Tool[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const isOwnProfile = user?.id === Number(id);
 
-// Componente Card
-const ToolCard: React.FC<ToolCardProps> = ({ id, name, imageUri }) => (
-  <View style={styles.card}>
-    <Image source={{ uri: imageUri }} style={styles.cardImage} />
-    <Text style={styles.cardTitle}>{name}</Text>
-  </View>
-);
+  useEffect(() => {
+    const loadProfileData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Cargar datos del usuario del perfil
+        // Por ahora usamos el usuario actual como ejemplo
+        if (user) {
+          setProfileUser(user);
+        }
+        
+        // Cargar herramientas del usuario
+        if (id) {
+          const userTools = await toolsService.getUserTools(Number(id));
+          setTools(userTools);
+        }
+      } catch (error) {
+        console.error('Error loading profile data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadProfileData();
+  }, [id, user]);
 
-interface Props {
-  reviews: Review[];
-  tools: ToolCardProps[];
-  rentedTools: ToolCardProps[];
-  averageRating?: number;
-}
+  // Mostrar loading mientras carga
+  if (isLoading || !profileUser) {
+    return (
+      <AppLayout>
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+          <Text>Cargando perfil...</Text>
+        </View>
+      </AppLayout>
+    );
+  }
 
+  const getInitials = (name: string) => {
+    return name.charAt(0).toUpperCase();
+  };
+  console.log(profileUser.username);
 
-
-export default function ProfilePage() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  
-  // Mock del usuario autenticado (simula tu hook de autenticación)
-  const myId = "123"; // Este valor debe coincidir con el del BottomTabBar
-  const user = { id: myId, name: "Juan Pérez" };
-  
-  // Verificar si es mi perfil comparando el ID de la URL con mi ID
-  const isMyProfile = user?.id === id;
-
-  // Estado para la mini navbar
-  const [selectedTab, setSelectedTab] = useState<"posts" | "rented" | "reviews">("posts");
-
-  // Datos simulados 
-  const myTools: ToolCardProps[] = [
-    { id: "1", name: "Taladro eléctrico", imageUri: "https://picsum.photos/200/300" },
-    { id: "2", name: "Sierra circular", imageUri: "https://picsum.photos/201/301" },
-  ];
-  const rentedTools: ToolCardProps[] = [
-    { id: "10", name: "Lijadora", imageUri: "https://picsum.photos/202/302" },
-  ];
-  const reviews: Review[] = [
-    { id: "r1", comment: "Muy buen servicio!", author: "Juan" },
-    { id: "r2", comment: "Herramientas en excelente estado.", author: "Ana" },
-  ];
-  const averageRating = 4.5;
-  const userName = user?.name || "Usuario Anónimo";
   return (
     <AppLayout>
       <ScrollView style={styles.container}>
-        {/* Header - solo si es tu perfil */}
-        {isMyProfile && (
-          <View style={styles.header}>
-            <TouchableOpacity>
-              <Text style={styles.headerButton}>🔔</Text>
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Text style={styles.headerButton}>⚙️</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Foto perfil */}
-        <View style={styles.profilePicContainer}>
-          <Image
-            source={{ uri: "https://randomuser.me/api/portraits/men/1.jpg" }}
-            style={styles.profilePic}
-          />
-        </View>
-
-          {/* Nombre de usuario */}
-          <Text style={styles.userName}>{userName}</Text>
-
-        {/* Calificación promedio */}
-        {averageRating && (
-          <Text style={styles.averageRating}>{averageRating.toFixed(1)} / 5</Text>
-        )}
-
-        {/* Mini navbar */}
-        <View style={styles.miniNavbar}>
-          <TouchableOpacity
-            style={[styles.tabButton, selectedTab === "posts" && styles.activeTab]}
-            onPress={() => setSelectedTab("posts")}
-          >
-            <Text style={[styles.tabText, selectedTab === "posts" && styles.activeTabText]}>
-              Herramientas
-            </Text>
-          </TouchableOpacity>
-
-          {isMyProfile && (
-            <TouchableOpacity
-              style={[styles.tabButton, selectedTab === "rented" && styles.activeTab]}
-              onPress={() => setSelectedTab("rented")}
-            >
-              <Text style={[styles.tabText, selectedTab === "rented" && styles.activeTabText]}>
-                Alquiladas
+        <View style={styles.header}>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              <Text style={styles.initials}>
+                {getInitials(profileUser.username)}
               </Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={[styles.tabButton, selectedTab === "reviews" && styles.activeTab]}
-            onPress={() => setSelectedTab("reviews")}
-          >
-            <Text style={[styles.tabText, selectedTab === "reviews" && styles.activeTabText]}>
-              Reseñas
-            </Text>
-          </TouchableOpacity>
+            </View>
+            {isOwnProfile && (
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={() => router.push('/(tabs)/profile/settings' as any)}
+              >
+                <Ionicons name="settings-outline" size={24} color="#666" />
+              </TouchableOpacity>
+            )}
+          </View>
+          <Text style={styles.username}>{profileUser.username}</Text>
+          <Text style={styles.email}>{profileUser.email}</Text>
         </View>
 
-        {/* Contenido según tab */}
-        <View style={styles.contentContainer}>
-          {selectedTab === "posts" && (
-            <FlatList
-              data={myTools}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => <ToolCard {...item} />}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-            />
-          )}
-
-          {selectedTab === "rented" && isMyProfile && (
-            <FlatList
-              data={rentedTools}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => <ToolCard {...item} />}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-            />
-          )}
-
-          {selectedTab === "reviews" && (
-            <View>
-              {reviews.map((r) => (
-                <View key={r.id} style={styles.review}>
-                  <Text style={styles.reviewAuthor}>{r.author}:</Text>
-                  <Text style={styles.reviewComment}>{r.comment}</Text>
-                </View>
-              ))}
-            </View>
-          )}
+        <View style={styles.toolsContainer}>
+          {tools.map((tool) => (
+            <ToolCard key={tool.id} tool={tool} />
+          ))}
         </View>
       </ScrollView>
+
+      {isOwnProfile && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => router.push('/create-post' as any)}
+        >
+          <Ionicons name="add" size={30} color="white" />
+        </TouchableOpacity>
+      )}
     </AppLayout>
   );
 }
 
-// --- ESTILOS ---
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#fff", // blanco base
-    paddingTop: 30,
+    flex: 1,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 15,
-    alignItems: "center",
-    margin: 0 ,
+    padding: 16,
+    alignItems: 'center',
   },
-  userName: {
-    color: "rgba(50, 50, 50, 0.5)", // gris oscuro
-    fontSize: 16,
-    textAlign: "center",
-  }, 
-  headerButton: {
+  avatarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#e0e0e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  initials: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  settingsButton: {
+    position: 'absolute',
+    right: -40,
+    padding: 8,
+  },
+  username: {
     fontSize: 24,
-    color: "#d32f2f", // rojo vibrante
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
-  profilePicContainer: {
-    alignItems: "center",
-    marginBottom: 10,
+  email: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 16,
   },
-  profilePic: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
+  toolsContainer: {
+    padding: 16,
   },
-  averageRating: {
-    textAlign: "center",
-    marginBottom: 15,
-    fontSize: 14,
-    color: "#000",
-  },
-  miniNavbar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 15,
-  },
-  tabButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
-  activeTab: {
-    borderBottomColor: "#d32f2f",
-    borderBottomWidth: 3,
-  },
-  tabText: {
-    color: "#000",
-    fontWeight: "600",
-  },
-  activeTabText: {
-    color: "#d32f2f",
-    fontWeight: "bold",
-  },
-  contentContainer: {
-    paddingHorizontal: 15,
-  },
-  card: {
-    width: 140,
-    marginRight: 12,
-    borderRadius: 8,
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 2,
-    paddingBottom: 10,
-  },
-  cardImage: {
-    width: "100%",
-    height: 90,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-  },
-  cardTitle: {
-    marginTop: 8,
-    textAlign: "center",
-    fontWeight: "600",
-    color: "#000",
-  },
-  review: {
+  toolCard: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 12,
     marginBottom: 12,
-    borderBottomColor: "#d32f2f",
-    borderBottomWidth: 1,
-    paddingBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  reviewAuthor: {
-    fontWeight: "bold",
-    color: "#d32f2f",
+  toolImagePlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  reviewComment: {
-    fontStyle: "italic",
-    color: "#000",
+  toolInfo: {
+    flex: 1,
+  },
+  toolName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  toolPrice: {
+    fontSize: 16,
+    color: '#2ecc71',
+    marginBottom: 4,
+  },
+  toolDescription: {
+    fontSize: 14,
+    color: '#666',
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#ff4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });

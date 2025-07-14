@@ -2,8 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 // Configuración base de la API - CAMBIA ESTA IP POR LA DE TU COMPUTADORA
-const API_BASE_URL = 'http://localhost:8000'; // Para desarrollo local
-//const API_BASE_URL = 'http://192.168.1.26:8000'; // Para testing en dispositivo físico
+//const API_BASE_URL = 'http://localhost:8000'; // Para desarrollo local
+const API_BASE_URL = 'http://192.168.1.96:8000';
 
 // Crear instancia de axios
 const api = axios.create({
@@ -22,7 +22,7 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
-  },
+  },  
   (error) => {
     return Promise.reject(error);
   }
@@ -73,6 +73,16 @@ export interface ApiError {
   detail: string;
 }
 
+export interface Tool {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  image_url?: string;
+  owner_id: number;
+  created_at: string;
+}
+
 // Servicios de autenticación
 export const authService = {
   // Login con JSON
@@ -93,6 +103,7 @@ export const authService = {
       
       return { user, token: access_token };
     } catch (error: any) {
+      console.log("Error de backend:", error.response?.data);
       throw new Error(error.response?.data?.detail || 'Error al iniciar sesión');
     }
   },
@@ -146,6 +157,53 @@ export const authService = {
       return null;
     } catch {
       return null;
+    }
+  },
+};
+
+// Servicios de herramientas
+export const toolsService = {
+  // Obtener todas las herramientas de un usuario
+  async getUserTools(userId: number): Promise<Tool[]> {
+    try {
+      // Mock data por ahora
+      const mockTools: Tool[] = [
+        {
+          id: 1,
+          name: "Taladro Eléctrico",
+          description: "Taladro de alta potencia, ideal para trabajos pesados",
+          price: 25,
+          image_url: "",
+          owner_id: userId,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 2,
+          name: "Sierra Circular",
+          description: "Sierra profesional para cortes precisos",
+          price: 35,
+          image_url: "",
+          owner_id: userId,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 3,
+          name: "Lijadora Orbital",
+          description: "Perfecta para acabados finos en madera",
+          price: 20,
+          image_url: "",
+          owner_id: userId,
+          created_at: new Date().toISOString()
+        }
+      ];
+      
+      return mockTools;
+      
+      // Cuando esté listo el backend, reemplazar con:
+      // const response = await api.get<Tool[]>(`/api/tools/user/${userId}`);
+      // return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Error al obtener herramientas');
     }
   },
 };
