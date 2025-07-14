@@ -67,6 +67,8 @@ def create_tool(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
+    print("hola")
+    print(tool)
     """
     Crea una nueva herramienta.
     

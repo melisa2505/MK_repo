@@ -31,7 +31,7 @@ export type RequestStatus =
   | 'canceled';  // Cancelada por el consumidor
 
 // Modo de simulación - Cambiar a false para usar API real
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = false;
 
 // Datos de prueba para solicitudes
 const MOCK_REQUESTS: Request[] = [

@@ -27,7 +27,7 @@ export interface RequestDates {
 }
 
 // Modo de simulación - Cambiar a false para usar API real
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = false;
 
 // Datos de prueba para chats
 const MOCK_CHATS: Chat[] = [

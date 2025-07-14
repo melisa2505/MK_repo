@@ -1,10 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AppLayout from '../../../components/AppLayout';
+import { Colors } from '../../../constants/Colors';
 import { useAuth } from '../../../context/AuthContext';
 import { Tool, toolsService } from '../../../services/api';
+
+const { width } = Dimensions.get('window');
+const cardWidth = (width - 48) / 3; // 3 cards per row with spacing
 
 // Tool Card Component
 const ToolCard = ({ tool }: { tool: Tool }) => {
@@ -13,19 +17,22 @@ const ToolCard = ({ tool }: { tool: Tool }) => {
       style={styles.toolCard}
       onPress={() => router.push(`/(tabs)/tool/${tool.id}` as any)}
     >
-      <View style={styles.toolImagePlaceholder}>
+      <View style={styles.toolImageContainer}>
         {tool.image_url ? (
-          <Ionicons name="image" size={40} color="#666" />
+          <Image 
+            source={{ uri: tool.image_url }} 
+            style={styles.toolImage}
+            resizeMode="cover"
+          />
         ) : (
-          <Ionicons name="construct" size={40} color="#666" />
+          <View style={styles.toolImagePlaceholder}>
+            <Ionicons name="construct" size={24} color={Colors.light.textSecondary} />
+          </View>
         )}
       </View>
       <View style={styles.toolInfo}>
-        <Text style={styles.toolName}>{tool.name}</Text>
-        <Text style={styles.toolPrice}>${tool.price}</Text>
-        <Text style={styles.toolDescription} numberOfLines={2}>
-          {tool.description}
-        </Text>
+        <Text style={styles.toolName} numberOfLines={2}>{tool.name}</Text>
+        <Text style={styles.toolPrice}>S/. {tool.daily_price}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -70,7 +77,7 @@ export default function ProfileScreen() {
     return (
       <AppLayout>
         <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-          <Text>Cargando perfil...</Text>
+          <Text style={styles.loadingText}>Cargando perfil...</Text>
         </View>
       </AppLayout>
     );
@@ -79,11 +86,10 @@ export default function ProfileScreen() {
   const getInitials = (name: string) => {
     return name.charAt(0).toUpperCase();
   };
-  console.log(profileUser.username);
 
   return (
     <AppLayout>
-      <ScrollView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
@@ -96,7 +102,7 @@ export default function ProfileScreen() {
                 style={styles.settingsButton}
                 onPress={() => router.push('/(tabs)/profile/settings' as any)}
               >
-                <Ionicons name="settings-outline" size={24} color="#666" />
+                <Ionicons name="settings-outline" size={24} color={Colors.light.textSecondary} />
               </TouchableOpacity>
             )}
           </View>
@@ -104,21 +110,28 @@ export default function ProfileScreen() {
           <Text style={styles.email}>{profileUser.email}</Text>
         </View>
 
-        <View style={styles.toolsContainer}>
-          {tools.map((tool) => (
-            <ToolCard key={tool.id} tool={tool} />
-          ))}
+        <View style={styles.toolsSection}>
+          <Text style={styles.sectionTitle}>Herramientas</Text>
+          <FlatList
+            data={tools}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => <ToolCard tool={item} />}
+            numColumns={3}
+            columnWrapperStyle={styles.row}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.toolsList}
+          />
         </View>
-      </ScrollView>
 
-      {isOwnProfile && (
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => router.push('/create-post' as any)}
-        >
-          <Ionicons name="add" size={30} color="white" />
-        </TouchableOpacity>
-      )}
+        {isOwnProfile && (
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => router.push('/create-post' as any)}
+          >
+            <Ionicons name="add" size={30} color="white" />
+          </TouchableOpacity>
+        )}
+      </View>
     </AppLayout>
   );
 }
@@ -126,53 +139,88 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.light.textSecondary,
   },
   header: {
-    padding: 16,
+    padding: 20,
     alignItems: 'center',
+    backgroundColor: Colors.light.secondary,
   },
   avatarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
+    position: 'relative',
+    width: '100%',
+    justifyContent: 'center',
   },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: Colors.light.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   initials: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#666',
+    color: '#FFFFFF',
   },
   settingsButton: {
     position: 'absolute',
-    right: -40,
+    right: 0,
     padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   username: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 4,
+    color: Colors.light.text,
   },
   email: {
     fontSize: 16,
-    color: '#666',
+    color: Colors.light.textSecondary,
     marginBottom: 16,
   },
-  toolsContainer: {
+  toolsSection: {
+    flex: 1,
     padding: 16,
   },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: Colors.light.text,
+  },
+  toolsList: {
+    paddingBottom: 80, // Space for FAB
+  },
+  row: {
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   toolCard: {
-    flexDirection: 'row',
+    width: cardWidth,
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
+    padding: 8,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -182,49 +230,58 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  toolImagePlaceholder: {
-    width: 80,
-    height: 80,
+  toolImageContainer: {
+    width: '100%',
+    height: cardWidth * 0.7,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  toolImage: {
+    width: '100%',
+    height: '100%',
+  },
+  toolImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: Colors.light.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
   toolInfo: {
-    flex: 1,
+    alignItems: 'center',
   },
   toolName: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 12,
+    fontWeight: '600',
     marginBottom: 4,
+    color: Colors.light.text,
+    textAlign: 'center',
+    minHeight: 32, // Consistent height for 2 lines
   },
   toolPrice: {
-    fontSize: 16,
-    color: '#2ecc71',
-    marginBottom: 4,
-  },
-  toolDescription: {
     fontSize: 14,
-    color: '#666',
+    fontWeight: 'bold',
+    color: Colors.light.primary,
   },
   fab: {
     position: 'absolute',
-    right: 16,
-    bottom: 16,
+    right: '50%',
+    bottom: 20,
+    marginRight: -28, // Half of the button width to center it
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#ff4444',
+    backgroundColor: Colors.light.primary,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 8,
   },
 });

@@ -77,10 +77,28 @@ export interface Tool {
   id: number;
   name: string;
   description: string;
-  price: number;
+  brand: string;
+  model: string;
+  daily_price: number;
+  warranty: number;
+  condition: 'new' | 'excellent' | 'good' | 'fair' | 'poor';
+  category_id: number;
   image_url?: string;
+  is_available: boolean;
   owner_id: number;
   created_at: string;
+}
+
+export interface ToolCreate {
+  name: string;
+  description: string;
+  brand: string;
+  model: string;
+  daily_price: number;
+  warranty?: number;
+  condition?: 'new' | 'excellent' | 'good' | 'fair' | 'poor';
+  category_id: number;
+  image_url?: string;
 }
 
 // Servicios de autenticación
@@ -166,44 +184,31 @@ export const toolsService = {
   // Obtener todas las herramientas de un usuario
   async getUserTools(userId: number): Promise<Tool[]> {
     try {
-      // Mock data por ahora
-      const mockTools: Tool[] = [
-        {
-          id: 1,
-          name: "Taladro Eléctrico",
-          description: "Taladro de alta potencia, ideal para trabajos pesados",
-          price: 25,
-          image_url: "",
-          owner_id: userId,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 2,
-          name: "Sierra Circular",
-          description: "Sierra profesional para cortes precisos",
-          price: 35,
-          image_url: "",
-          owner_id: userId,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 3,
-          name: "Lijadora Orbital",
-          description: "Perfecta para acabados finos en madera",
-          price: 20,
-          image_url: "",
-          owner_id: userId,
-          created_at: new Date().toISOString()
-        }
-      ];
-      
-      return mockTools;
-      
-      // Cuando esté listo el backend, reemplazar con:
-      // const response = await api.get<Tool[]>(`/api/tools/user/${userId}`);
-      // return response.data;
+      const response = await api.get<Tool[]>(`/api/tools/user/${userId}`);
+      return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Error al obtener herramientas');
+      console.log("Error al obtener herramientas:", error.response?.data);
+      // Si hay error, devolver array vacío en lugar de mock data
+      return [];
+    }
+  },
+
+  // Crear una nueva herramienta
+  async createTool(toolData: ToolCreate): Promise<Tool> {
+    try {
+      // Asegurar que la condición esté en minúsculas para el backend
+      const backendData = {
+        ...toolData,
+        category_id: toolData.category_id || 1, // Asegurar que category_id tenga un valor por defecto
+        condition: toolData.condition?.toLowerCase() || 'good'
+
+      };
+      console.log(backendData);
+      const response = await api.post<Tool>('/api/tools/', backendData);
+      return response.data;
+    } catch (error: any) {
+      console.log("Error al crear herramienta:", error.response?.data);
+      throw new Error(error.response?.data?.detail || 'Error al crear herramienta');
     }
   },
 };
