@@ -19,5 +19,5 @@ class Message(Base):
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
-    # chat = relationship("Chat", back_populates="messages")
-    # sender = relationship("User")
+    chat = relationship("Chat", back_populates="messages")
+    sender = relationship("User")

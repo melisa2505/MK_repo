@@ -5,6 +5,8 @@ from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
+from .message import Message
+
 
 class ChatBase(BaseModel):
     """Base schema for chats."""
@@ -30,7 +32,7 @@ class Chat(ChatBase):
 
 class ChatWithMessages(Chat):
     """Schema for chat with its messages."""
-    # messages: List["Message"] = []
+    messages: List[Message] = []
 
     class Config:
         """Model configuration."""

@@ -19,7 +19,7 @@ class Chat(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
-    # owner = relationship("User", foreign_keys=[owner_id])
-    # consumer = relationship("User", foreign_keys=[consumer_id])
-    # tool = relationship("Tool")
-    # messages = relationship("Message", back_populates="chat")
+    owner = relationship("User", foreign_keys=[owner_id])
+    consumer = relationship("User", foreign_keys=[consumer_id])
+    tool = relationship("Tool")
+    messages = relationship("Message", back_populates="chat")

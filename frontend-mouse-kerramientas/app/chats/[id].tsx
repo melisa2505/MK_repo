@@ -6,6 +6,7 @@ import {
     Alert,
     FlatList,
     Image,
+    Keyboard,
     KeyboardAvoidingView,
     Platform,
     StyleSheet,
@@ -29,6 +30,7 @@ export default function ChatDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   // Determinar si el usuario es el propietario o el consumidor
@@ -68,6 +70,33 @@ export default function ChatDetailScreen() {
     fetchChatDetails();
   }, [id, user]);
 
+  // Detección de la aparición/ocultación del teclado
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => {
+        setKeyboardVisible(true);
+        // Desplazar al final cuando aparece el teclado
+        if (flatListRef.current && chat?.messages.length) {
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        }
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, [chat]);
+
   // Actualizar mensajes cada 5 segundos
   useEffect(() => {
     if (loading) return; // No actualizar si está cargando inicialmente
@@ -79,6 +108,12 @@ export default function ChatDetailScreen() {
         const updatedChat = await chatService.getChatDetail(Number(id));
         if (updatedChat.messages.length !== chat?.messages.length) {
           setChat(updatedChat);
+          // Desplazar al último mensaje cuando hay nuevos
+          if (flatListRef.current) {
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+          }
         }
       } catch (error) {
         console.error('Error al actualizar mensajes:', error);
@@ -105,7 +140,9 @@ export default function ChatDetailScreen() {
       
       // Desplazar al final de la lista
       if (flatListRef.current && chat.messages.length > 0) {
-        flatListRef.current.scrollToEnd({ animated: true });
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
       }
     } catch (error) {
       console.error('Error al enviar mensaje:', error);
@@ -183,8 +220,8 @@ export default function ChatDetailScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 60}
     >
       <Stack.Screen 
         options={{ 
@@ -229,67 +266,75 @@ export default function ChatDetailScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Lista de mensajes */}
-      <FlatList
-        ref={flatListRef}
-        data={chat.messages}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderMessageItem}
-        contentContainerStyle={styles.messagesContainer}
-        onContentSizeChange={() => 
-          flatListRef.current?.scrollToEnd({ animated: false })
-        }
-        onLayout={() => 
-          flatListRef.current?.scrollToEnd({ animated: false })
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyMessagesContainer}>
-            <MaterialCommunityIcons 
-              name="chat-outline" 
-              size={60} 
-              color={Colors.light.textSecondary} 
-            />
-            <Text style={styles.emptyMessagesText}>
-              No hay mensajes aún. ¡Sé el primero en enviar un mensaje!
-            </Text>
-          </View>
-        }
-      />
-      
-      {/* Botón de solicitar alquiler (solo para consumidores) */}
-      {isConsumer && tool?.is_available && (
-        <TouchableOpacity 
-          style={styles.requestRentalButton}
-          onPress={handleRequestRental}
-        >
-          <Text style={styles.requestRentalButtonText}>Solicitar Alquiler</Text>
-        </TouchableOpacity>
-      )}
-      
-      {/* Input para enviar mensajes */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          value={messageText}
-          onChangeText={setMessageText}
-          placeholder="Escribe un mensaje..."
-          placeholderTextColor={Colors.light.textSecondary}
-          multiline
+      <View style={styles.mainContent}>
+        {/* Lista de mensajes */}
+        <FlatList
+          ref={flatListRef}
+          data={chat.messages}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderMessageItem}
+          contentContainerStyle={[
+            styles.messagesContainer,
+            keyboardVisible && styles.messagesContainerWithKeyboard
+          ]}
+          onContentSizeChange={() => 
+            flatListRef.current?.scrollToEnd({ animated: true })
+          }
+          onLayout={() => 
+            flatListRef.current?.scrollToEnd({ animated: true })
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyMessagesContainer}>
+              <MaterialCommunityIcons 
+                name="chat-outline" 
+                size={60} 
+                color={Colors.light.textSecondary} 
+              />
+              <Text style={styles.emptyMessagesText}>
+                No hay mensajes aún. ¡Sé el primero en enviar un mensaje!
+              </Text>
+            </View>
+          }
         />
-        <TouchableOpacity 
-          style={[
-            styles.sendButton,
-            (!messageText.trim() || sending) && styles.sendButtonDisabled
-          ]} 
-          onPress={handleSendMessage}
-          disabled={!messageText.trim() || sending}
-        >
-          {sending ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <MaterialCommunityIcons name="send" size={22} color="#fff" />
+        
+        {/* Botones y entrada de texto en un contenedor fijo en la parte inferior */}
+        <View style={styles.bottomContainer}>
+          {/* Botón de solicitar alquiler (solo para consumidores) */}
+          {isConsumer && tool?.is_available && (
+            <TouchableOpacity 
+              style={styles.requestRentalButton}
+              onPress={handleRequestRental}
+            >
+              <Text style={styles.requestRentalButtonText}>Solicitar Alquiler</Text>
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+          
+          {/* Input para enviar mensajes */}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={messageText}
+              onChangeText={setMessageText}
+              placeholder="Escribe un mensaje..."
+              placeholderTextColor={Colors.light.textSecondary}
+              multiline
+            />
+            <TouchableOpacity 
+              style={[
+                styles.sendButton,
+                (!messageText.trim() || sending) && styles.sendButtonDisabled
+              ]} 
+              onPress={handleSendMessage}
+              disabled={!messageText.trim() || sending}
+            >
+              {sending ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <MaterialCommunityIcons name="send" size={22} color="#fff" />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -298,7 +343,10 @@ export default function ChatDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: Colors.light.background,
+  },
+  backButtonHeader: {
+    padding: 8,
   },
   loadingContainer: {
     flex: 1,
@@ -330,35 +378,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-  backButtonHeader: {
-    padding: 8,
-  },
-  rentalButton: {
-    backgroundColor: Colors.light.primary,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    marginRight: 8,
-  },
-  rentalButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-  },
   toolInfoBanner: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
     alignItems: 'center',
+    padding: 10,
+    backgroundColor: '#f9f9f9',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
   toolImageContainer: {
     width: 40,
     height: 40,
     borderRadius: 8,
     overflow: 'hidden',
-    marginRight: 12,
+    marginRight: 10,
   },
   toolImage: {
     width: '100%',
@@ -373,102 +406,116 @@ const styles = StyleSheet.create({
   },
   toolInfo: {
     flex: 1,
+    paddingRight: 10,
   },
   toolName: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.light.text,
-    marginBottom: 2,
   },
   toolPrice: {
     fontSize: 14,
     color: Colors.light.primary,
-    fontWeight: '600',
+    fontWeight: '500',
+  },
+  mainContent: {
+    flex: 1,
+    position: 'relative',
   },
   messagesContainer: {
-    padding: 16,
-    flexGrow: 1,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 16,
+  },
+  messagesContainerWithKeyboard: {
+    paddingBottom: 80, // Dar espacio adicional cuando el teclado está visible
   },
   messageBubble: {
-    maxWidth: '75%',
+    maxWidth: '80%',
     padding: 12,
     borderRadius: 16,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   userMessage: {
-    backgroundColor: Colors.light.primary,
     alignSelf: 'flex-end',
-    borderBottomRightRadius: 4,
+    backgroundColor: Colors.light.primary,
+    borderTopRightRadius: 4,
   },
   otherMessage: {
-    backgroundColor: '#FFFFFF',
     alignSelf: 'flex-start',
-    borderBottomLeftRadius: 4,
+    backgroundColor: '#e9e9e9',
+    borderTopLeftRadius: 4,
   },
   messageText: {
     fontSize: 16,
+    lineHeight: 22,
   },
   userMessageText: {
-    color: 'white', // Para mensajes del usuario
+    color: '#fff',
   },
   otherMessageText: {
-    color: '#333333', // Para mensajes de otros usuarios - color oscuro para que se vea bien
+    color: '#333',
   },
   messageTime: {
-    fontSize: 12,
-    alignSelf: 'flex-end',
+    fontSize: 11,
     marginTop: 4,
+    alignSelf: 'flex-end',
   },
   userMessageTime: {
     color: 'rgba(255, 255, 255, 0.8)',
   },
   otherMessageTime: {
-    color: 'rgba(0, 0, 0, 0.5)',
+    color: '#888',
   },
   emptyMessagesContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    marginTop: 80,
+    paddingVertical: 40,
   },
   emptyMessagesText: {
+    marginTop: 16,
     fontSize: 16,
     color: Colors.light.textSecondary,
     textAlign: 'center',
-    marginTop: 16,
+    maxWidth: '80%',
+  },
+  bottomContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
   },
   requestRentalButton: {
-    backgroundColor: '#ff3b30', // Color rojo para llamar la atención
-    paddingVertical: 12,
-    marginHorizontal: 16,
+    backgroundColor: '#f0f8ff',
+    borderWidth: 1,
+    borderColor: Colors.light.primary,
     borderRadius: 8,
+    paddingVertical: 10,
     alignItems: 'center',
     marginBottom: 8,
   },
   requestRentalButtonText: {
-    color: 'white',
-    fontSize: 16,
+    color: Colors.light.primary,
     fontWeight: '600',
+    fontSize: 15,
   },
   inputContainer: {
     flexDirection: 'row',
-    padding: 12,
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
-    alignItems: 'center',
+    alignItems: 'flex-end',
+    marginBottom: Platform.OS === 'ios' ? 4 : 0,
   },
   input: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
+    backgroundColor: '#f0f2f5',
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    maxHeight: 100,
-    backgroundColor: '#F5F5F5',
-    color: Colors.light.text,
+    paddingTop: 12,
+    paddingBottom: 12,
+    fontSize: 16,
+    maxHeight: 120,
+    marginRight: 8,
   },
   sendButton: {
     backgroundColor: Colors.light.primary,
@@ -477,9 +524,8 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
   },
   sendButtonDisabled: {
-    backgroundColor: Colors.light.textTernary,
+    backgroundColor: '#b0bec5',
   },
 });

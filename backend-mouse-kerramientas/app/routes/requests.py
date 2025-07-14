@@ -123,7 +123,7 @@ async def pay_request(
             detail="Not authorized to pay for this request"
         )
     
-    if request.status != "pending":
+    if request.status != "confirmed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot pay for request in '{request.status}' status"
@@ -164,7 +164,7 @@ async def confirm_reception(
             detail="Not authorized to confirm reception for this request"
         )
     
-    if request.status != "confirmed":
+    if request.status != "paid":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot confirm reception for request in '{request.status}' status"
@@ -249,12 +249,6 @@ async def confirm_request(
             detail="Not authorized to confirm this request"
         )
     
-    if request.status != "confirmed":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot confirm request in '{request.status}' status"
-        )
-    
     updated_request = crud_request.update_request_status(db, request_id, "confirmed")
     
     # Create notification for the consumer
@@ -331,7 +325,7 @@ async def confirm_return_by_owner(
             detail="Not authorized to confirm return reception for this request"
         )
     
-    if request.status != "returned":
+    if request.status != "delivered":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot confirm return reception for request in '{request.status}' status"

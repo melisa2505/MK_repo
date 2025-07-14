@@ -58,8 +58,20 @@ async def get_chat_detail(
             detail="Not authorized to view this chat"
         )
     
-    # TODO: Add messages to the response once the relationship is set up
-    return chat
+    # Get messages for this chat
+    messages = crud_message.get_messages_by_chat(db, chat_id)
+    
+    # Create response with chat and messages
+    chat_with_messages = ChatWithMessages(
+        id=chat.id,
+        owner_id=chat.owner_id,
+        consumer_id=chat.consumer_id,
+        tool_id=chat.tool_id,
+        created_at=chat.created_at,
+        messages=messages
+    )
+    
+    return chat_with_messages
 
 
 @router.post("/{chat_id}/mensaje", response_model=Message)

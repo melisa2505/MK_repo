@@ -246,11 +246,8 @@ export const toolService = {
     
     // Si no, usamos la API real
     try {
-      const response = await api.post<Chat>('/api/chats/create', {
-        owner_id: ownerId,
-        consumer_id: consumerId,
-        tool_id: toolId
-      });
+      // Cambiamos para enviar los parámetros como query params en lugar de como body
+      const response = await api.post<Chat>(`/api/chats/create?owner_id=${ownerId}&consumer_id=${consumerId}&tool_id=${toolId}`);
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Error al crear chat con el propietario');
