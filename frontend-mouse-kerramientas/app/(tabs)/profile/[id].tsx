@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AppLayout from '../../../components/AppLayout';
+import { ToolsBackground } from '../../../components/ToolsBackground';
 import { Colors } from '../../../constants/Colors';
 import { useAuth } from '../../../context/AuthContext';
 import { Tool, toolsService } from '../../../services/api';
@@ -47,33 +49,39 @@ export default function ProfileScreen() {
   const isOwnProfile = user?.id === Number(id);
 
   useEffect(() => {
-    const loadProfileData = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Cargar datos del usuario del perfil
-        // Por ahora usamos el usuario actual como ejemplo
-        if (user) {
-          setProfileUser(user);
+    // Solo cargar datos del usuario del perfil una vez
+    if (user) {
+      setProfileUser(user);
+    }
+  }, [user]);
+
+  // Usar useFocusEffect para recargar herramientas cada vez que se enfoca la pantalla
+  useFocusEffect(
+    useCallback(() => {
+      const loadTools = async () => {
+        try {
+          setIsLoading(true);
+          
+          // Cargar herramientas del usuario cada vez que se enfoca la pantalla
+          if (id) {
+            console.log("Cargando herramientas para usuario:", id);
+            const userTools = await toolsService.getUserTools(Number(id));
+            setTools(userTools);
+          }
+        } catch (error) {
+          console.error('Error loading tools:', error);
+          setTools([]); // Si hay error, mostrar lista vacía
+        } finally {
+          setIsLoading(false);
         }
-        
-        // Cargar herramientas del usuario
-        if (id) {
-          const userTools = await toolsService.getUserTools(Number(id));
-          setTools(userTools);
-        }
-      } catch (error) {
-        console.error('Error loading profile data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadProfileData();
-  }, [id, user]);
+      };
+      
+      loadTools();
+    }, [id])
+  );
 
   // Mostrar loading mientras carga
-  if (isLoading || !profileUser) {
+  if (!profileUser) {
     return (
       <AppLayout>
         <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -91,6 +99,9 @@ export default function ProfileScreen() {
     <AppLayout>
       <View style={styles.container}>
         <View style={styles.header}>
+          {/* Patrón de herramientas */}
+          <ToolsBackground opacity={0.08} density={10} iconColor="#6c757d" />
+          
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
               <Text style={styles.initials}>
@@ -108,19 +119,33 @@ export default function ProfileScreen() {
           </View>
           <Text style={styles.username}>{profileUser.username}</Text>
           <Text style={styles.email}>{profileUser.email}</Text>
+          
+          {/* Curva inferior del header */}
+          <View style={styles.curve} />
         </View>
 
         <View style={styles.toolsSection}>
           <Text style={styles.sectionTitle}>Herramientas</Text>
-          <FlatList
-            data={tools}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => <ToolCard tool={item} />}
-            numColumns={3}
-            columnWrapperStyle={styles.row}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.toolsList}
-          />
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Cargando herramientas...</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={tools}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => <ToolCard tool={item} />}
+              numColumns={3}
+              columnWrapperStyle={styles.row}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.toolsList}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No tienes herramientas publicadas</Text>
+                </View>
+              }
+            />
+          )}
         </View>
 
         {isOwnProfile && (
@@ -145,10 +170,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.light.textSecondary,
   },
-  header: {
-    padding: 20,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.light.secondary,
+    paddingVertical: 40,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: Colors.light.textSecondary,
+    textAlign: 'center',
+  },
+  header: {
+    position: 'relative',
+    padding: 20,
+    paddingBottom: 40, // Espacio extra para la curva
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa', // Color gris claro suave
+    overflow: 'hidden', // Para que los iconos no salgan del área
   },
   avatarContainer: {
     flexDirection: 'row',
@@ -157,51 +202,71 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
     justifyContent: 'center',
+    zIndex: 2, // Asegurar que esté por encima del patrón
+  },
+  curve: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    width: width,
+    height: 30,
+    backgroundColor: Colors.light.background, // Mantenemos el color de fondo de la app
+    borderTopLeftRadius: 100,
+    borderTopRightRadius: 100,
+    zIndex: 1,
   },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: Colors.light.primary,
+    backgroundColor: Colors.light.primary, // Mantenemos el rojo para el avatar
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 5,
+    zIndex: 2,
   },
   initials: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#FFFFFF', // Blanco para las iniciales
   },
   settingsButton: {
     position: 'absolute',
     right: 0,
     padding: 8,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.95)',
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 117, 125, 0.2)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 2,
   },
   username: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 4,
-    color: Colors.light.text,
+    color: '#2c3e50', // Gris oscuro para buen contraste
+    zIndex: 2,
   },
   email: {
     fontSize: 16,
-    color: Colors.light.textSecondary,
+    color: '#6c757d', // Gris medio
     marginBottom: 16,
+    zIndex: 2,
   },
   toolsSection: {
     flex: 1,
     padding: 16,
+    paddingTop: 20, // Espacio extra para compensar la curva
   },
   sectionTitle: {
     fontSize: 20,

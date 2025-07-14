@@ -1,5 +1,6 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import AppLayout from '../../components/AppLayout';
 import { Colors } from '../../constants/Colors';
@@ -14,24 +15,45 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar herramientas al iniciar
-  useEffect(() => {
-    const fetchTools = async () => {
-      try {
-        setLoading(true);
-        const toolsData = await toolService.getAllTools();
-        setTools(toolsData);
-        setFilteredTools(toolsData);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error al cargar herramientas:', error);
-        setError('No se pudieron cargar las herramientas. Intente nuevamente.');
-        setLoading(false);
-      }
-    };
+  // Cargar herramientas cada vez que se enfoca la pantalla
+  useFocusEffect(
+    useCallback(() => {
+      const fetchTools = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          console.log("Cargando herramientas en el home...");
+          const toolsData = await toolService.getAllTools();
+          setTools(toolsData);
+          setFilteredTools(toolsData);
+          setLoading(false);
+        } catch (error) {
+          console.error('Error al cargar herramientas:', error);
+          setError('No se pudieron cargar las herramientas. Intente nuevamente.');
+          setLoading(false);
+        }
+      };
 
-    fetchTools();
-  }, []);
+      fetchTools();
+    }, [])
+  );
+
+  // Función para recargar herramientas
+  const reloadTools = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log("Recargando herramientas...");
+      const toolsData = await toolService.getAllTools();
+      setTools(toolsData);
+      setFilteredTools(toolsData);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error al recargar herramientas:', error);
+      setError('No se pudieron cargar las herramientas. Intente nuevamente.');
+      setLoading(false);
+    }
+  };
 
   // Manejar búsqueda
   const handleSearch = (text: string) => {
@@ -72,20 +94,7 @@ export default function HomeScreen() {
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity 
               style={styles.retryButton}
-              onPress={() => {
-                setLoading(true);
-                setError(null);
-                toolService.getAllTools()
-                  .then(data => {
-                    setTools(data);
-                    setFilteredTools(data);
-                    setLoading(false);
-                  })
-                  .catch(err => {
-                    setError('No se pudieron cargar las herramientas. Intente nuevamente.');
-                    setLoading(false);
-                  });
-              }}
+              onPress={reloadTools}
             >
               <Text style={styles.retryButtonText}>Reintentar</Text>
             </TouchableOpacity>

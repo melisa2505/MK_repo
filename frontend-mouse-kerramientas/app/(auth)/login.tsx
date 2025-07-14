@@ -1,7 +1,8 @@
 import { FontAwesome5 } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, Image, Platform, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ToolsBackground } from '../../components/ToolsBackground';
 import { Alert } from '../../components/ui/Alert';
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../../context/AuthContext';
@@ -10,84 +11,6 @@ import { useAuth } from '../../context/AuthContext';
 const { width, height } = Dimensions.get('window');
 // Calculamos una unidad base relativa basada en la pantalla
 const baseUnit = Math.min(width, height) * 0.05;
-
-// Componente mejorado con distribución en cuadrícula compatible con móviles
-const ToolsBackground = ({ opacity = 0.5, density = 8 }) => {
-    // Array de iconos de herramientas para usar
-    const toolIcons = [
-      'hammer', 'screwdriver', 'wrench', 'tools', 
-      'pencil-ruler', 'tape', 'toolbox', 'ruler'
-    ];
-    
-    // Generamos las herramientas usando useMemo para mejorar el rendimiento
-    const tools = useMemo(() => {
-      const result = [];
-      // Determinamos el número de filas y columnas según la densidad
-      const rows = density; 
-      const cols = density;
-      
-      // Calculamos el ancho y alto del contenedor
-      const containerWidth = width; // Ancho de la pantalla
-      const containerHeight = height; // Altura del header
-      
-      // Calculamos el espaciado entre herramientas en valores absolutos (píxeles)
-      const xStep = containerWidth / (cols + 1);
-      const yStep = containerHeight / (rows + 1);
-      
-      // Creamos la cuadrícula
-      for (let row = 1; row <= rows; row++) {
-        for (let col = 1; col <= cols; col++) {
-          // Calculamos la posición exacta usando el espaciado (en píxeles, no porcentajes)
-          const x = col * xStep;
-          const y = row * yStep;
-          
-          // Elegimos un ícono aleatorio del array
-          const randomIcon = toolIcons[Math.floor(Math.random() * toolIcons.length)];
-          
-          // Tamaño aleatorio pero dentro de un rango razonable
-          const size = Math.floor(Math.random() * 8) + 16; // Entre 16 y 24
-          
-          // Rotación aleatoria para variedad visual (valor en grados, sin "deg")
-          const rotate = Math.floor(Math.random() * 8) * 45; // Múltiplos de 45 grados
-          
-          // Añadimos pequeñas variaciones aleatorias en píxeles, no en porcentajes
-          const xOffset = (Math.random() * 14 - 7 - 1/density*100); // Variación de ±10px
-          const yOffset = (Math.random() * 14 - 7 - 1/density*100 + (col % 2 === 0 ? 20 : 0)); // Variación de ±10px
-          
-          // Agregamos la herramienta a nuestro array
-          result.push({
-            icon: randomIcon,
-            x: x + xOffset,
-            y: y + yOffset,
-            size: size,
-            rotate: rotate,
-          });
-        }
-      }
-      
-      return result;
-    }, [density]); // Solo se recalcula si cambia la densidad
-  
-    return (
-      <View style={styles.patternContainer}>
-        {tools.map((tool, index) => (
-          <FontAwesome5 
-            key={index}
-            name={tool.icon}
-            size={tool.size}
-            color="white"
-            style={{
-              position: 'absolute',
-              left: tool.x,
-              top: tool.y,
-              opacity: opacity,
-              transform: [{ rotate: `${tool.rotate}deg` }]
-            }}
-          />
-        ))}
-      </View>
-    );
-  };
 
 export default function LoginScreen() {
   const theme = Colors.light;
@@ -290,16 +213,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     overflow: 'hidden', // Para que los iconos no salgan del área
-  },
-  patternContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1, // Cambiamos de -1 a 1 para asegurar que se muestre
-    width: '100%',
-    height: '100%',
   },
   curve: {
     zIndex: 2,
